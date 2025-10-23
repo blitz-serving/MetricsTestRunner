@@ -1,0 +1,44 @@
+# ========== 启动配置 ==========
+[runtime.raw]
+config = [
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "0", TORCH_CUDA_ARCH_LIST = "9.0" }, background = true, port_offset = 0,role="kv_producer",kv_port=22281},
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "1", TORCH_CUDA_ARCH_LIST = "9.0" }, background = true, port_offset = 1,role="kv_producer",kv_port=22282},
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "2", TORCH_CUDA_ARCH_LIST = "9.0" }, background = true, port_offset = 2,role="kv_consumer",kv_port=22283},
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "3", TORCH_CUDA_ARCH_LIST = "9.0" }, background = true, port_offset = 3,role="kv_consumer",kv_port=22284},
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "4", TORCH_CUDA_ARCH_LIST = "9.0" }, background = true, port_offset = 4,role="kv_consumer",kv_port=22285},
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "5", TORCH_CUDA_ARCH_LIST = "9.0" }, background = true, port_offset = 5,role="kv_consumer",kv_port=22286},
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "6", TORCH_CUDA_ARCH_LIST = "9.0" }, background = true, port_offset = 6,role="kv_consumer",kv_port=22287},
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "7", TORCH_CUDA_ARCH_LIST = "9.0" }, background = false, port_offset = 7,role="kv_consumer",kv_port=22288},
+]
+
+# ======= Shared variables ========
+# can be ingested from outside to avoid hard coding
+# NOTE: RHS can only expand parameters defined outside ${var-name}
+[variables]
+model_path = "${model-path}"
+blitzdir = "${work-dir}"
+tokenizer_path = "${model-path}/tokenizer.json"
+vllm_executable = "${venv-path}/bin/vllm serve"
+client_executable = "${work-dir}/target/release/client"
+base_vllm_port = 59180
+dataset_dir = "${dataset-dir}"
+log_dir = "${log-dir}"
+output_dir = "${output-dir}"
+proxy_ip = "33.254.160.17" # local
+# TODO proxy ip, setting as blitz router ip later when blitz support PD-disaggregation
+proxy_port = 30001 
+
+# ========== 模板定义 ==========
+#  "--base-port", "${base_vllm_port}",
+
+[app.vllm_template]
+executable = ["${vllm_executable}"]
+extra_args = [
+    "${model_path}",
+    "--no-enable-prefix-caching",
+    "--max-num-batched-tokens", "1024",
+    "--port", "${port}",
+    "--kv-transfer-config",
+    "{\"kv_connector\":\"P2pNcclConnector\",\"kv_role\":\"${role}\",\"kv_buffer_size\":\"8e9\",\"kv_port\":\"${kv_port}\",\"kv_connector_extra_config\":{\"proxy_ip\":\"${proxy_ip}\",\"proxy_port\":\"${proxy_port}\",\"http_port\":\"${port}\",\"send_type\":\"PUT_ASYNC\",\"nccl_num_channels\":\"16\"}}",
+    "> ${log_file} 2>&1"
+]
