@@ -169,7 +169,7 @@ def gen_raw_cmd(app_cmd: str,
         offset = app_running_config.get("port_offset", 0)
         role = app_running_config.get("role", "kv_producer")
         kv_port = app_running_config.get("kv_port", 22281)
-        if offset > 0:
+        if os.path.exists(stub_path):
             with open(stub_path, "r") as f:
                 data = json.load(f)
                 stubs = data
@@ -220,12 +220,9 @@ def gen_ssh_cmd(app_cmd: str,
         raise ValueError(f"No remote IP found for SSH index {ssh_index}")
     
     remote_host = remote_ips[ssh_index]
-    remote_user = "hanjinbo.hjb"  # Default user, can be overridden
-    
-    # Override user if specified in app config
-    if "remote_user" in app_running_config:
-        remote_user = app_running_config["remote_user"]
-    
+    remote_user = variables.get("remote_user", "root")
+    remote_ssh_port = variables.get("remote_ssh_port", 22)
+
     # Handle port offset for remote execution
     app = app_running_config["app"]
     stubs = []
@@ -284,7 +281,7 @@ def gen_ssh_cmd(app_cmd: str,
     )
 
     # Wrap in ssh call
-    full_cmd = f'ssh "{remote_user}@{remote_host}" "{remote_shell_cmd}"'
+    full_cmd = f'ssh -p {remote_ssh_port} "{remote_user}@{remote_host}" "{remote_shell_cmd}"'
 
     return full_cmd
 
@@ -339,10 +336,11 @@ def run_apps(rt: str, rt_config: dict, app_config: dict, variables: dict):
         else:
             # For other runtimes (e.g., ssh), create directories remotely
             remote_output_dir = variables.get("remote_output_dir")
+            
             if remote_output_dir:
-                # Extract SSH index from runtime name (e.g., "ssh.1" -> 1)
-                if "." in rt:
-                    ssh_index = int(rt.split(".")[1])
+                # Extract SSH index from runtime name (e.g., "ssh_1" -> 1)
+                if "_" in rt:
+                    ssh_index = int(rt.split("_")[1])
                 else:
                     ssh_index = 0
                 
@@ -352,17 +350,18 @@ def run_apps(rt: str, rt_config: dict, app_config: dict, variables: dict):
                     raise ValueError(f"No remote IP found for SSH index {ssh_index}")
                 
                 remote_host = remote_ips[ssh_index]
-                remote_user = "hanjinbo.hjb"  # Default user, can be overridden
-                
+                remote_user = variables.get("remote_user", "root")
+                remote_ssh_port = variables.get("remote_ssh_port", 22)
+
                 # Create remote directory using SSH
                 print(f"Creating remote directory: {remote_output_dir} on {remote_host}")
-                ssh_cmd = f'ssh "{remote_user}@{remote_host}" "mkdir -p {remote_output_dir}"'
+                ssh_cmd = f'ssh -p {remote_ssh_port} "{remote_user}@{remote_host}" "mkdir -p {remote_output_dir}"'
                 subprocess.run(ssh_cmd, shell=True, check=True)
 
         app_cmd = process_macro(app_name, app_general, app_self_cfg)
         print(f"[after process marco] {app_cmd=}\n")
 
-        rt_func = rt_registry.get(rt.split("_")[0])  # Get base runtime type (e.g., "ssh" from "ssh.1")
+        rt_func = rt_registry.get(rt.split("_")[0])  # Get base runtime type (e.g., "ssh" from "ssh_1")
         if not rt_func:
             raise ValueError(f"Unknown runtime: {rt}")
 

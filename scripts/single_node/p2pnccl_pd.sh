@@ -21,16 +21,16 @@
 # =============================================================================
 
 # Configuration - can be overridden via environment variables
-MODEL='/home/hanjinbo.hjb/Qwen2.5-7B-Instruct'
-VENV_PATH='/home/hanjinbo.hjb/yaullm/.venv'
+MODEL='/home/admin/resource/model/464482ce.Qwen2.5-7B-Instruct/1.0/'
+VENV_PATH='//mnt/debugger/hjb/node1/yaullm/.venv'
 TIMEOUT_SECONDS=${TIMEOUT_SECONDS:-1200}
 PROXY_PORT=${PROXY_PORT:-30001}
 
-# Default 1P3D configuration (1 Prefill + 3 Decode)
+# Default 1P3D configuration (3 Prefill + 3 Decode)
 # Local setting up
-PREFILL_GPUS=${PREFILL_GPUS:-4}
+PREFILL_GPUS=${PREFILL_GPUS:-0,1,2}
 DECODE_GPUS=${DECODE_GPUS:-5,6,7}
-PREFILL_PORTS=${PREFILL_PORTS:-20003}
+PREFILL_PORTS=${PREFILL_PORTS:-20002,20003,20004}
 DECODE_PORTS=${DECODE_PORTS:-20005,20007,20009}
 
 echo "Warning: P2P NCCL disaggregated prefill XpYd support for vLLM v1 is experimental and subject to change."
@@ -49,7 +49,7 @@ PIDS=()
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 check_required_files() {
-    local files=("disagg_proxy_p2p_nccl_xpyd.py")
+    local files=("../../disagg_proxy_p2p_nccl_xpyd.py")
     for file in "${files[@]}"; do
         if [[ ! -f "$file" ]]; then
             echo "Required file $file not found in $(pwd)"
@@ -148,7 +148,7 @@ main() {
     # =============================================================================
     echo ""
     echo "Starting proxy server on port $PROXY_PORT..."
-    python3 disagg_proxy_p2p_nccl_xpyd.py &
+    $VENV_PATH/bin/python ../../disagg_proxy_p2p_nccl_xpyd.py &
     PIDS+=($!)
 
     # Parse GPU and port arrays
@@ -229,13 +229,15 @@ main() {
     echo ""
     echo "All servers are up. Starting benchmark..."
 
+    sleep 20
+
+    #sleep 9000
     # =============================================================================
     # Run Benchmark
     # =============================================================================
-    #cd ../../../benchmarks/
     $VENV_PATH/bin/vllm bench serve --port 10001 --seed $(date +%s) \
         --model $MODEL \
-        --dataset-name random --random-input-len 7500 --random-output-len 200 \
+        --dataset-name random --random-input-len 1024 --random-output-len 200 \
         --num-prompts 200 --burstiness 100 --request-rate 2 | tee benchmark.log
 
     echo "Benchmarking done. Cleaning up..."

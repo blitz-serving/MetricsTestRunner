@@ -31,10 +31,10 @@ output_plot_b = os.path.join(dir_b, plot_filename)
 # Fields of interest
 fields = ["first_token_time"]
 
-# Load all .jsonl files in the given directory and aggregate data for specified fields
+
 def load_all_jsonl(directory, fields):
     data = {field: [] for field in fields}
-    jsonl_files = glob.glob(os.path.join(directory, "*.jsonl"))
+    jsonl_files = glob.glob(os.path.join(directory, "client.jsonl"))
     if not jsonl_files:
         print(f"Warning: No .jsonl files found in {directory}")
     for file_path in jsonl_files:
@@ -46,10 +46,14 @@ def load_all_jsonl(directory, fields):
                 try:
                     obj = json.loads(line)
                     for field in fields:
-                        value = float(obj.get(field, 0))
+                        raw_value = obj.get(field, 0)
+                        if raw_value == "nil":
+                            value = 0.0
+                        else:
+                            value = float(raw_value)
                         data[field].append(value)
                 except Exception as e:
-                    print(f"Error parsing line in {file_path}: {e}")
+                    print(f"Skip arsing line in {file_path}: {e}")
                     continue
     return data
 

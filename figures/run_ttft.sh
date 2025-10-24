@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")" || exit 1
 
-LOGS_DIR="$HOME/lmmetric-logs"
+LOGS_DIR="$PDIR/lmmetric-logs"
 
 if [ ! -d "$LOGS_DIR" ]; then
     echo "Error: $LOGS_DIR does not exist."
