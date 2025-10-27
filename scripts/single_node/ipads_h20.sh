@@ -18,10 +18,10 @@
 # -----------------------------------------------------------------------------
 
 # Model path - directory containing the LLM model files
-MODEL_PATH='/nvme/models/Meta-Llama-3-8B-Instruct/'
+MODEL_PATH='/nvme/models/Qwen2.5-7B-Instruct'
 
 # Python virtual environment path with vLLM installed
-VENV_PATH='/nvme/zkx/modified-vllm/myenv/bin/'
+VENV_PATH='/nvme/zkx/modified-vllm/myenv'
 
 # Project directory containing the blitz-infer-pack codebase
 WORK_DIR='/nvme/zkx/blitz-infer-pack'
@@ -33,7 +33,7 @@ NO_BACKEND=false
 OUTPUT_BASE="/nvme/lmetric/logs/lmmetric-logs"
 
 # Directory containing dataset files for client requests
-DATASET_DIR="/nvme/lmetric/datasets/"
+DATASET_DIR="/nvme/lmetric/datasets"
 
 # Evaluation duration in seconds
 TIME_IN_SEC=1200
@@ -194,20 +194,22 @@ launch_experiment_session() {
         echo "Launching vLLM backends and waiting 120s..."
         tmux new-window -t "$session_name" -n window1
         tmux send-keys -t "$session_name:window1" "$tmux_cmd && python ../../smart_runner.py --toml $config1 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
-        sleep 120
+        echo "python ../../smart_runner.py --toml $config1 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir"
+        sleep 240
     fi
     
     # Launch router
     echo "Launching router and waiting 20s..."
     tmux new-window -t "$session_name" -n window2
     tmux send-keys -t "$session_name:window2" "$tmux_cmd && python ../../smart_runner.py --toml $config2 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
+    echo "python ../../smart_runner.py --toml $config2 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir"
     sleep 20
     
     # Launch client
     echo "Launching client..."
     tmux new-window -t "$session_name" -n window3
     tmux send-keys -t "$session_name:window3" "$tmux_cmd && python ../../smart_runner.py --toml $config3 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
-    
+    echo "python ../../smart_runner.py --toml $config3 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir"
     # Wait for experiment to complete
     echo "Running experiment for ${time_in_sec}s..."
     sleep $(($time_in_sec + 30))  # Extra time for pending requests
@@ -293,11 +295,11 @@ POLICY="$4"
 #     echo "Error: policy must be 'least-work-q' or 'round-robin-q' or 'join-shortest-q', got: '$POLICY'"
 #     exit 1
 # fi
-VALIDATE_POLICY=("least-work-q" "round-robin-q" "join-shortest-q")
-if [[ ! " ${VALIDATE_POLICY[*]} " =~ " ${POLICY} " ]]; then
-    echo "Error: policy must be one of: ${VALIDATE_POLICY[*]}, got: '$POLICY'"
-    exit 1
-fi
+# VALIDATE_POLICY=("least-work-q" "round-robin-q" "join-shortest-q")
+# if [[ ! " ${VALIDATE_POLICY[*]} " =~ " ${POLICY} " ]]; then
+#     echo "Error: policy must be one of: ${VALIDATE_POLICY[*]}, got: '$POLICY'"
+#     exit 1
+# fi
 
 # Validate that configuration files exist
 validate_file_exists "$CONFIG1" "Backend configuration"
