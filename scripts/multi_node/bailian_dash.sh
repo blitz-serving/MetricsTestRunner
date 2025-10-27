@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================================
-# Metrics Test Runner - Azure Evaluation Script
+# Metrics Test Runner - Bailian Evaluation Script
 # =============================================================================
 # This script orchestrates distributed LLM inference experiments using:
 # 1. vLLM backends (model serving)
@@ -18,33 +18,37 @@
 # -----------------------------------------------------------------------------
 
 # Model path - directory containing the LLM model files
-MODEL_PATH='/home/hanjinbo.hjb/Qwen2.5-7B-Instruct'
-REMOTE_MODEL_PATH='/home/hanjinbo.hjb/Qwen2.5-7B-Instruct'
+MODEL_PATH='/home/admin/resource/model/464482ce.Qwen2.5-7B-Instruct/1.0/'
+REMOTE_MODEL_PATH='/home/admin/resource/model/464482ce.Qwen2.5-7B-Instruct/1.0/'
 
 # Python virtual environment path with vLLM installed
-VENV_PATH='/home/hanjinbo.hjb/yaullm/.venv'
-REMOTE_VENV_PATH='/home/hanjinbo.hjb/yaullm/.venv'
+VENV_PATH='/mnt/debugger/hjb/node1/yaullm/.venv'
+REMOTE_VENV_PATH='/mnt/debugger/hjb/node2/yaullm/.venv'
 
 # Project directory containing the blitz-infer-pack codebase
-WORK_DIR='/home/hanjinbo.hjb/blitz-infer-pack'
+WORK_DIR='/mnt/debugger/hjb/node1/blitz-infer-pack'
 
 # Flag to skip launching backend (useful for debugging)
 NO_BACKEND=false
 
 # Base directory for output logs
-OUTPUT_BASE="/home/hanjinbo.hjb/lmmetric-logs"
-REMOTE_OUTPUT_BASE="/home/hanjinbo.hjb/lmmetric-logs"
+OUTPUT_BASE="/tmp/node1/lmmetric-logs"
+REMOTE_OUTPUT_BASE="/tmp/node2/lmmetric-logs"
+STORE_OUTPUT_BASE="/mnt/debugger/hjb/node1/lmmetric-logs"
+STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node2/lmmetric-logs"
 
 # Directory containing dataset files for client requests
-DATASET_DIR="/home/hanjinbo.hjb/AzurePublicDataset/data"
+DATASET_DIR="/mnt/debugger/hjb/node1/qwen-bailian-usagetraces-anon"
 
-REMOTE_IPS="33.254.60.218"
+REMOTE_IPS="172.27.18.133"
+SSH_PORT=10022
 
 # Evaluation duration in seconds
-TIME_IN_SEC=1200
+# TODO, client need about 2min to fill the channel
+TIME_IN_SEC=$((300 + 120))
 
 # Session name for tmux
-SESSION_NAME="azure"
+SESSION_NAME="bailian"
 
 # -----------------------------------------------------------------------------
 # Derived Configuration - Computed from User Parameters
@@ -60,7 +64,7 @@ REMOTE_OUTPUT_DIR="${REMOTE_OUTPUT_BASE}/${TIMESTAMP}"
 
 # Print usage information
 print_usage() {
-    echo "Usage: $0 [--no-backend] [--work-dir DIR] [--venv-path PATH] [--remote-output-dir DIR] [--remote-model-path PATH] [--remote-venv-path PATH] <backend-cfg> <router-cfg> <client-cfg> <policy>"
+    echo "Usage: $0 [--no-backend] [--work-dir DIR] [--venv-path PATH] [--remote-output-dir DIR] [--remote-model-path PATH] [--remote-venv-path PATH] [-v] <backend-cfg> <router-cfg> <client-cfg> <policy>"
     echo "  policy must be one of: least-work-q, round-robin-q, join-shortest-q"
     echo ""
     echo "Options:"
@@ -70,6 +74,7 @@ print_usage() {
     echo "  --remote-output-dir DIR   Set remote output directory (default: $REMOTE_OUTPUT_DIR)"
     echo "  --remote-model-path PATH  Set remote model path (default: $REMOTE_MODEL_PATH)"
     echo "  --remote-venv-path PATH   Set remote virtual environment path (default: $REMOTE_VENV_PATH)"
+    echo "  -v                    Verbose mode - show build output (default: silent)"
 }
 
 # Validate that a file exists
@@ -115,7 +120,7 @@ kill_remote_processes_by_pattern() {
     # Kill processes on each remote machine
     for ip in "${IPS[@]}"; do
         echo "Killing processes on $ip..."
-        ssh "$ip" "source $remote_venv_path/bin/activate && pkill -f '$pattern' 2>/dev/null || true" 2>/dev/null || true
+        ssh "-p ${SSH_PORT}" "$ip" "source $remote_venv_path/bin/activate && pkill -f -9 '$pattern' 2>/dev/null || true" 2>/dev/null || true
     done
 }
 
@@ -148,15 +153,22 @@ build_project_components() {
     echo "Building router_v2 with features: $features"
     
     # Build router_v2 with specified features
-    # TODO, note this is debug mode now --release 
-    cargo build -p router_v2 --features "$features"
+    if [ "$VERBOSE" = true ]; then
+        cargo build -p router_v2 --release --features "$features"
+    else
+        cargo build -p router_v2 --release --features "$features" --quiet
+    fi
     if [ $? -ne 0 ]; then
         echo "Error: Failed to build router_v2."
         exit 1
     fi
     
     # Build request simulator client
-    cargo build -p request-sim --bin client --release -j64
+    if [ "$VERBOSE" = true ]; then
+        cargo build -p request-sim --bin client --release -j64
+    else
+        cargo build -p request-sim --bin client --release -j64 --quiet
+    fi
     if [ $? -ne 0 ]; then
         echo "Error: Failed to build request-sim client."
         exit 1
@@ -188,6 +200,116 @@ setup_output_directory() {
     echo "$features" > "$policy_output_dir/commands.txt"
     
     echo "$policy_output_dir"
+}
+
+wait_for_vllm_startup() {
+    local remote_dir="$OUTPUT_DIR"
+    local max_wait_sec=300  # 5 minutes
+    local elapsed=0
+    local check_interval=5
+
+    if [ -z "$remote_dir" ]; then
+        echo "ERROR: OUTPUT_DIR is not set." >&2
+        return 1
+    fi
+
+    sleep 30
+    elapsed=30
+
+    while [ $elapsed -lt $max_wait_sec ]; do
+        local all_ready=true
+
+        set -- "$remote_dir"/vllm*.log
+        if [ ! -e "$1" ]; then
+            echo "No vllm*.log files found in $remote_dir. Waiting..."
+            all_ready=false
+        else
+            for logfile in "$remote_dir"/vllm*.log; do
+                if [ ! -f "$logfile" ]; then
+                    continue
+                fi
+
+                expected="INFO:     Application startup complete."
+                if ! grep -Fq "$expected" "$logfile" 2>/dev/null; then
+                    echo "Waiting for $logfile to complete startup..."
+                    all_ready=false
+                    break
+                fi
+            done
+        fi
+
+        if [ "$all_ready" = true ]; then
+            echo "All vllm*.log files indicate startup complete."
+            return 0
+        fi
+
+        sleep $check_interval
+        elapsed=$((elapsed + check_interval))
+    done
+
+    echo "ERROR: vLLM startup timeout after $max_wait_sec seconds." >&2
+    return 1
+}
+
+wait_for_remote_vllm_startup() {
+    local remote_dir="$REMOTE_OUTPUT_DIR"
+    local max_wait_sec=300  # 5 minutes
+    local elapsed=0
+    local check_interval=5
+
+    if [ -z "$remote_dir" ]; then
+        echo "ERROR: REMOTE_OUTPUT_DIR is not set." >&2
+        return 1
+    fi
+
+    if [ -z "$REMOTE_IPS" ]; then
+        echo "ERROR: REMOTE_IPS is not set." >&2
+        return 1
+    fi
+
+    # Split remote_ips into an array
+    IFS=',' read -ra IPS <<< "$REMOTE_IPS"
+
+    elapsed=0
+
+    while [ $elapsed -lt $max_wait_sec ]; do
+        local all_ready=true
+
+        # Check each remote IP
+        for ip in "${IPS[@]}"; do
+            # Check if remote log files exist
+            local remote_log_check=$(ssh "-p ${SSH_PORT}" "$ip" "ls ${remote_dir}/vllm*.log 2>/dev/null" 2>/dev/null)
+            
+            if [ -z "$remote_log_check" ]; then
+                echo "No vllm*.log files found in $remote_dir on $ip. Waiting..."
+                all_ready=false
+                break
+            fi
+
+            # Check each log file on the remote machine
+            for remote_logfile in $remote_log_check; do
+                local expected="INFO:     Application startup complete."
+                local found=$(ssh "-p ${SSH_PORT}" "$ip" "grep -F '$expected' '$remote_logfile' 2>/dev/null" 2>/dev/null)
+                
+                if [ -z "$found" ]; then
+                    echo "Waiting for $remote_logfile on $ip to complete startup..."
+                    all_ready=false
+                    break 2  # Break out of both loops
+                fi
+            done
+        done
+
+        if [ "$all_ready" = true ]; then
+            echo "All remote vllm*.log files indicate startup complete."
+            return 0
+        fi
+
+        sleep $check_interval
+        elapsed=$((elapsed + check_interval))
+    done
+
+    echo "ERROR: Remote vLLM startup timeout after $max_wait_sec seconds." >&2
+    return 1
 }
 
 # Launch tmux session with experiment components
@@ -224,25 +346,35 @@ launch_experiment_session() {
     if [ "$no_backend" = false ]; then
         echo "Launching vLLM backends and waiting 120s..."
         tmux new-window -t "$session_name" -n window1
-        tmux send-keys -t "$session_name:window1" "$tmux_cmd && python ../../smart_runner_v2.py --toml $config1 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --remote-output-dir=$remote_output_dir --remote-model-path=$remote_model_path --remote-venv-path=$remote_venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
-        sleep 120
+        tmux send-keys -t "$session_name:window1" "$tmux_cmd && python ../../smart_runner.py --toml $config1 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --remote-output-dir=$remote_output_dir --remote-model-path=$remote_model_path --remote-venv-path=$remote_venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
+        # Wait for vLLM startup with timeout
+        if ! wait_for_vllm_startup; then
+            echo "FATAL: vLLM failed to start in time. Aborting experiment." >&2
+            cleanup_processes
+            exit 1
+        fi
+        # Wait for remote vLLM startup instead of sleeping
+        if ! wait_for_remote_vllm_startup; then
+            echo "FATAL: Remote vLLM failed to start in time. Aborting experiment." >&2
+            cleanup_processes
+            exit 1
+        fi
     fi
     
     # Launch router
     echo "Launching router and waiting 20s..."
     tmux new-window -t "$session_name" -n window2
-    tmux send-keys -t "$session_name:window2" "$tmux_cmd && python ../../smart_runner_v2.py --toml $config2 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
+    tmux send-keys -t "$session_name:window2" "$tmux_cmd && python ../../smart_runner.py --toml $config2 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
     sleep 20
+
+    # Launch client
+    echo "Launching client..."
+    tmux new-window -t "$session_name" -n window3
+    tmux send-keys -t "$session_name:window3" "$tmux_cmd && python ../../smart_runner.py --toml $config3 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
     
-    sleep 5000
-    # # Launch client
-    # echo "Launching client..."
-    # tmux new-window -t "$session_name" -n window3
-    # tmux send-keys -t "$session_name:window3" "$tmux_cmd && python ../../smart_runner_v2.py --toml $config3 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
-    
-    # # Wait for experiment to complete
-    # echo "Running experiment for ${time_in_sec}s..."
-    # sleep $(($time_in_sec + 30))  # Extra time for pending requests
+    # Wait for experiment to complete
+    echo "Running experiment for ${time_in_sec}s..."
+    sleep $(($time_in_sec + 30))  # Extra time for pending requests
 }
 
 # Merge client logs and generate figures
@@ -255,22 +387,26 @@ post_process_results() {
     cat "$output_dir"/client*.jsonl > "$output_dir/client.jsonl"
     
     echo "Generating overall figures..."
-    "$venv_path/bin/python" "../../figures/final_figure_zero.py" --output-dir="$output_dir/"
+    "$venv_path/bin/python" "../../figures/final_figure_zero.py" --output-dir="$output_dir/" 
+
+    echo "Generating send gap fig \\n"
+    "$venv_path/bin/python" "../../figures/draw_send_gap.py" "$output_dir/" --time-window=2.0
+
+    echo "Generating many cdf figs \\n"
+    "$venv_path/bin/python" "../../figures/draw_cdf.py" "$output_dir/"
 }
 
 # Cleanup processes after experiment
 cleanup_processes() {
-    local venv_path=$1
-    local remote_ips=$2
-    local remote_venv_path=$3
+    trap - INT TERM
     echo "Cleaning up processes..."
-    kill_processes_by_pattern "$venv_path/bin/vllm" "vLLM"
+    kill_processes_by_pattern "$VENV_PATH/bin/vllm" "vLLM"
     kill_processes_by_pattern "router_v2" "router"
     kill_processes_by_pattern "smart_runner.py" "smart runner"
     
     # Clean up remote processes if remote IPs are provided
-    if [ -n "$remote_ips" ] && [ -n "$remote_venv_path" ]; then
-        kill_remote_processes_by_pattern "$remote_venv_path/bin/vllm" "remote vLLM" "$remote_ips" "$remote_venv_path"
+    if [ -n "$REMOTE_IPS" ] && [ -n "$REMOTE_VENV_PATH" ]; then
+        kill_remote_processes_by_pattern "$REMOTE_VENV_PATH/bin/vllm" "remote vLLM" "$REMOTE_IPS" "$REMOTE_VENV_PATH"
     fi
     
     sleep 5
@@ -281,9 +417,19 @@ cleanup_processes() {
 # -----------------------------------------------------------------------------
 
 # Parse command line arguments
+
+trap cleanup_processes INT
+trap cleanup_processes USR1
+trap cleanup_processes TERM
+
 POSITIONAL_ARGS=()
+VERBOSE=false
 while [[ $# -gt 0 ]]; do
     case $1 in
+        -v)
+            VERBOSE=true
+            shift
+        ;;
         --no-backend)
             NO_BACKEND=true
             shift
@@ -343,11 +489,15 @@ CONFIG2="$2"
 CONFIG3="$3"
 POLICY="$4"
 
-# Validate policy
-if [[ "$POLICY" != "least-work-q" && "$POLICY" != "round-robin-q" && "$POLICY" != "join-shortest-q" ]]; then
-    echo "Error: policy must be 'least-work-q' or 'round-robin-q' or 'join-shortest-q', got: '$POLICY'"
-    exit 1
-fi
+case "$POLICY" in
+    round-robin-q|join-shortest-q|bounded-most-hit-q|least-wait-token-q|bailian-impl-q)
+        # Valid policy, do nothing
+        ;;
+    *)
+        echo "Error: policy must be one of 'round-robin-q', 'join-shortest-q', 'bounded-most-hit-q', 'least-wait-token-q', or 'bailian-impl-q', got: '$POLICY'" >&2
+        exit 1
+        ;;
+esac
 
 # Validate that configuration files exist
 validate_file_exists "$CONFIG1" "Backend configuration"
@@ -387,6 +537,7 @@ echo "Cleaning up previous processes..."
 kill_processes_by_pattern "$VENV_PATH/bin/vllm" "previous vLLM"
 kill_processes_by_pattern "router_v2" "previous router"
 kill_processes_by_pattern "$WORK_PATH/target/release/client" "previous client"
+kill_remote_processes_by_pattern "$REMOTE_VENV_PATH/bin/vllm" "remote vLLM" "$REMOTE_IPS" "$REMOTE_VENV_PATH"
 
 sleep 10
 
@@ -397,10 +548,14 @@ cleanup_tmux_session "$SESSION_NAME"
 launch_experiment_session "$SESSION_NAME" "$WORK_DIR" "$VENV_PATH" "$CONFIG1" "$CONFIG2" "$CONFIG3" "$OUTPUT_BASE" "$OUTPUT_DIR" "$MODEL_PATH" "$DATASET_DIR" "$NO_BACKEND" "$TIME_IN_SEC" "$REMOTE_OUTPUT_DIR" "$REMOTE_MODEL_PATH" "$REMOTE_VENV_PATH"
 
 # Post-process results
-# post_process_results "$OUTPUT_DIR" "$WORK_DIR" "$VENV_PATH"
+post_process_results "$OUTPUT_DIR" "$WORK_DIR" "$VENV_PATH"
+
+echo "moving logs to nfs"
+mv $OUTPUT_DIR $STORE_OUTPUT_BASE
+ssh -p "$SSH_PORT" "$ip" "mv '${REMOTE_OUTPUT_DIR}' '${STORE_REMOTE_OUTPUT_BASE}'"
 
 # Cleanup processes
-cleanup_processes "$VENV_PATH" "$REMOTE_IPS" "$REMOTE_VENV_PATH"
+cleanup_processes
 
 # Final message
 echo "Experiment completed successfully!"

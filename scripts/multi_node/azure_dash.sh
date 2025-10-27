@@ -32,8 +32,10 @@ WORK_DIR='/mnt/debugger/hjb/node1/blitz-infer-pack'
 NO_BACKEND=false
 
 # Base directory for output logs
-OUTPUT_BASE="/mnt/debugger/hjb/node1/lmmetric-logs"
-REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node2/lmmetric-logs"
+OUTPUT_BASE="/tmp/node1/lmmetric-logs"
+REMOTE_OUTPUT_BASE="/tmp/node2/lmmetric-logs"
+STORE_OUTPUT_BASE="/mnt/debugger/hjb/node1/lmmetric-logs"
+STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node2/lmmetric-logs"
 
 # Directory containing dataset files for client requests
 DATASET_DIR="/mnt/debugger/hjb/node1/AzurePublicDataset/data"
@@ -266,7 +268,7 @@ launch_experiment_session() {
     if [ "$no_backend" = false ]; then
         echo "Launching vLLM backends and waiting 120s..."
         tmux new-window -t "$session_name" -n window1
-        tmux send-keys -t "$session_name:window1" "$tmux_cmd && python ../../smart_runner_v2.py --toml $config1 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --remote-output-dir=$remote_output_dir --remote-model-path=$remote_model_path --remote-venv-path=$remote_venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
+        tmux send-keys -t "$session_name:window1" "$tmux_cmd && python ../../smart_runner.py --toml $config1 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --remote-output-dir=$remote_output_dir --remote-model-path=$remote_model_path --remote-venv-path=$remote_venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
         wait_for_vllm_startup
         # assume that remote vllm will started up at some periods..
         sleep 20
@@ -275,13 +277,13 @@ launch_experiment_session() {
     # Launch router
     echo "Launching router and waiting 20s..."
     tmux new-window -t "$session_name" -n window2
-    tmux send-keys -t "$session_name:window2" "$tmux_cmd && python ../../smart_runner_v2.py --toml $config2 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
+    tmux send-keys -t "$session_name:window2" "$tmux_cmd && python ../../smart_runner.py --toml $config2 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
     sleep 20
 
     # Launch client
     echo "Launching client..."
     tmux new-window -t "$session_name" -n window3
-    tmux send-keys -t "$session_name:window3" "$tmux_cmd && python ../../smart_runner_v2.py --toml $config3 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
+    tmux send-keys -t "$session_name:window3" "$tmux_cmd && python ../../smart_runner.py --toml $config3 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
     
     # Wait for experiment to complete
     echo "Running experiment for ${time_in_sec}s..."
@@ -304,7 +306,7 @@ post_process_results() {
     "$venv_path/bin/python" "../../figures/draw_send_gap.py" "$output_dir/" --time-window=2.0
 
     echo "Generating many cdf figs \n"
-    "$venv_path/bin/python" "../../figures/draw_cdf.py" --output-dir="$output_dir/"
+    "$venv_path/bin/python" "../../figures/draw_cdf.py" "$output_dir/"
 }
 
 # Cleanup processes after experiment
@@ -451,6 +453,10 @@ launch_experiment_session "$SESSION_NAME" "$WORK_DIR" "$VENV_PATH" "$CONFIG1" "$
 
 # Post-process results
 post_process_results "$OUTPUT_DIR" "$WORK_DIR" "$VENV_PATH"
+
+echo "moving logs to nfs"
+mv $OUTPUT_DIR $STORE_OUTPUT_BASE
+ssh -p "$SSH_PORT" "$ip" "mv '${REMOTE_OUTPUT_DIR}' '${STORE_REMOTE_OUTPUT_BASE}'"
 
 # Cleanup processes
 cleanup_processes

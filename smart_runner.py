@@ -156,6 +156,50 @@ def process_macro(
     return " ".join(cmd_parts)
 
 
+def kill_local_process_on_port(port: int):
+    """Kill local process occupying a specific port"""
+    try:
+        # Try using lsof first (more common on modern systems)
+        result = subprocess.run(['lsof', '-i', f':{port}'], capture_output=True, text=True)
+        if result.returncode == 0 and result.stdout:
+            lines = result.stdout.strip().split('\n')
+            if len(lines) > 1:  # Header + at least one process
+                for line in lines[1:]:  # Skip header
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        pid = parts[1]
+                        try:
+                            os.kill(int(pid), signal.SIGTERM)
+                            print(f"Killed local process {pid} on port {port}")
+                            time.sleep(1)  # Give process time to terminate
+                            os.kill(int(pid), signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass  # Process already terminated
+                        except PermissionError:
+                            print(f"Permission denied to kill process {pid} on port {port}")
+
+    except FileNotFoundError:
+        print(f"Warning: Neither lsof nor netstat found to check port {port}")
+    except Exception as e:
+        print(f"Error killing local process on port {port}: {e}")
+
+
+def kill_remote_process_on_port(remote_host: str, remote_user: str, remote_ssh_port: int, port: int):
+    """Kill remote process occupying a specific port"""
+    try:
+        # Command to kill process on remote host
+        # Uses lsof if available, falls back to netstat
+        kill_cmd = f"""ssh -p {remote_ssh_port} "{remote_user}@{remote_host}" 'if command -v lsof >/dev/null 2>&1; then PID=$(lsof -i :{port} -t 2>/dev/null); if [ -n "$PID" ]; then kill $PID 2>/dev/null && echo "Killed remote process $PID on port {port}"; sleep 1; fi; else if command -v netstat >/dev/null 2>&1; then for pid in $(netstat -tlnp 2>/dev/null | grep ":{port}" | awk "{{print \$7}}" | cut -d"/" -f1); do kill $pid 2>/dev/null && echo "Killed remote process $pid on port {port}"; done; fi; fi'"""
+        
+        result = subprocess.run(kill_cmd, shell=True, capture_output=True, text=True)
+        if result.returncode == 0 and result.stdout:
+            print(result.stdout.strip())
+        elif result.stderr:
+            print(f"Error killing remote process on port {port}: {result.stderr}")
+    except Exception as e:
+        print(f"Error killing remote process on port {port}: {e}")
+
+
 @register("raw")
 def gen_raw_cmd(app_cmd: str, 
                 rt_config: dict, 
@@ -164,12 +208,12 @@ def gen_raw_cmd(app_cmd: str,
     app = app_running_config["app"]
     stubs = []
     stub_path = f"{variables["work-dir"]}/exps/blitz-run/configs/config-stubs.json"
-    if app == "vllm_template":
+    if app == "vllm_template" or app == "vllm_remote_template":
         base_port = variables.get("base_vllm_port", 22222)
         offset = app_running_config.get("port_offset", 0)
         role = app_running_config.get("role", "kv_producer")
         kv_port = app_running_config.get("kv_port", 22281)
-        if offset > 0:
+        if os.path.exists(stub_path):
             with open(stub_path, "r") as f:
                 data = json.load(f)
                 stubs = data
@@ -179,7 +223,15 @@ def gen_raw_cmd(app_cmd: str,
         port = base_port + offset
         stubs.append(f"http://localhost:{port}")
         
-        log_file = f"{variables["output-dir"]}/vllm{offset+1}.log"
+        # Create output directory if it doesn't exist
+        output_dir = variables.get("output_dir", "/tmp")
+        os.makedirs(output_dir, exist_ok=True)
+        log_file = f"{output_dir}/vllm{offset+1}.log"
+        
+        # Kill any existing processes on these ports before starting new ones
+        kill_local_process_on_port(port)
+        kill_local_process_on_port(kv_port)
+        
         # replace the variables in command
         app_cmd = app_cmd.replace("${port}", str(port))
         app_cmd = app_cmd.replace("${log_file}", log_file)
@@ -200,22 +252,91 @@ def gen_raw_cmd(app_cmd: str,
 
 
 @register("ssh")
-def gen_ssh_cmd(app_cmd: str, ssh_global_config: dict, app_running_config: dict) -> str:
-    if (
-        "remote_user" not in app_running_config
-        or "remote_host" not in app_running_config
-    ):
-        raise ValueError("Missing 'remote_user' or 'remote_host'.")
+def gen_ssh_cmd(app_cmd: str, 
+                ssh_global_config: dict, 
+                app_running_config: dict,
+                variables: dict) -> str:
+    # Extract SSH index from runtime name (e.g., "ssh_1" -> 1)
+    rt_name = ssh_global_config.get("__rt_name", "ssh")
+    if "_" in rt_name:
+        ssh_index = int(rt_name.split("_")[1])
+    else:
+        ssh_index = 0
 
-    user, host = app_running_config["remote_user"], app_running_config["remote_host"]
-    run_in_bg = app_running_config.get("background", False)
-    if run_in_bg:
-        app_cmd = f"nohup {app_cmd} > /dev/null 2>&1 &"
+    # Get remote IPs from variables
+    remote_ips = variables.get("remote_ips", [])
+    if not remote_ips or ssh_index >= len(remote_ips):
+        raise ValueError(f"No remote IP found for SSH index {ssh_index}")
+    
+    remote_host = remote_ips[ssh_index]
+    remote_user = variables.get("remote_user", "root")
+    remote_ssh_port = variables.get("remote_ssh_port", 22)
 
-    full_cmd = f'ssh "{user}@{host}" {app_cmd} </dev/null'
-    if run_in_bg:
-        full_cmd += " &"
-    return insert_envs(full_cmd, app_running_config)
+    # Handle port offset for remote execution
+    app = app_running_config["app"]
+    stubs = []
+    stub_path = f"{variables['work-dir']}/exps/blitz-run/configs/config-stubs.json"
+    
+    if app == "vllm_remote_template":
+        base_port = variables.get("remote_base_vllm_port", 59180)
+        offset = app_running_config.get("port_offset", 0)
+        role = app_running_config.get("role", "kv_producer")
+        kv_port = app_running_config.get("kv_port", 22281)
+        
+        # Load existing stubs if file exists
+        if os.path.exists(stub_path):
+            with open(stub_path, "r") as f:
+                data = json.load(f)
+                stubs = data
+        
+        port = base_port + offset
+        stubs.append(f"http://{remote_host}:{port}")
+        
+        remote_output_dir = variables.get("remote_output_dir", "/tmp")
+        log_file = f"{remote_output_dir}/vllm{offset+1}.log"
+        
+        # Kill any existing processes on these ports before starting new ones
+        kill_remote_process_on_port(remote_host, remote_user, remote_ssh_port, port)
+        kill_remote_process_on_port(remote_host, remote_user, remote_ssh_port, kv_port)
+        
+        # Replace variables in command
+        app_cmd = app_cmd.replace("${port}", str(port))
+        app_cmd = app_cmd.replace("${log_file}", log_file)
+        app_cmd = app_cmd.replace("${role}", str(role))
+        app_cmd = app_cmd.replace("${kv_port}", str(kv_port))
+        
+        print(f"Adding remote stubs to {stubs}")
+        with open(stub_path, "w") as f:
+            json.dump(stubs, f, indent=2)
+
+    # Insert environment variables (e.g., CUDA_VISIBLE_DEVICES=7 ...)
+    app_cmd = insert_envs(app_cmd, app_running_config)
+
+    envs = app_running_config.get("envs", {})
+    #print(f"remote {envs=} {app_running_config=} {app_cmd=}")
+    cuda_visible = envs.get("CUDA_VISIBLE_DEVICES", "0")  # default to "0" if not set
+    # Handle cases like "7" or "7,8" — take first device
+    gpu_id = str(cuda_visible).split(",")[0].strip()
+
+    tmux_session_name = f"metric_test_{gpu_id}"
+
+    # Escape quotes and backslashes for safe shell embedding
+    escaped_app_cmd = app_cmd.replace("'", "'\"'\"'")  # safely escape single quotes
+
+    # Construct the remote shell command that:
+    # 1. Kills existing tmux session (if any)
+    # 2. Starts a new detached tmux session running the app_cmd with proper redirection
+    remote_shell_cmd = (
+        f"tmux kill-session -t {tmux_session_name} 2>/dev/null || true; "
+        f"tmux new-session -d -s {tmux_session_name} '"
+        f"{escaped_app_cmd}; exec bash"
+        f"'"
+    )
+
+    # Wrap in ssh call
+    full_cmd = f'ssh -p {remote_ssh_port} "{remote_user}@{remote_host}" "{remote_shell_cmd}"'
+
+    return full_cmd
 
 
 @register("mpi")
@@ -244,6 +365,10 @@ def block_until_keyword(proc: subprocess.Popen, keyword: str):
 
 
 def run_apps(rt: str, rt_config: dict, app_config: dict, variables: dict):
+    # Store the original runtime name for SSH indexing
+    rt_config_with_name = rt_config.copy()
+    rt_config_with_name["__rt_name"] = rt
+    
     all_apps = rt_config.get("config", [])
     for init_config in all_apps:
         app_name = init_config["app"]
@@ -253,17 +378,49 @@ def run_apps(rt: str, rt_config: dict, app_config: dict, variables: dict):
         app_general = app_config[app_name]
         
         app_self_cfg = app_general.get("config", {})
+        
+        # Create directories based on runtime type
+        if rt.split("_")[0] == "raw":
+            # For raw runtime, create directories locally
+            output_dir = variables.get("output_dir")
+            if output_dir:
+                print(f"Creating local directory: {output_dir}")
+                os.makedirs(output_dir, exist_ok=True)
+        else:
+            # For other runtimes (e.g., ssh), create directories remotely
+            remote_output_dir = variables.get("remote_output_dir")
+            
+            if remote_output_dir:
+                # Extract SSH index from runtime name (e.g., "ssh_1" -> 1)
+                if "_" in rt:
+                    ssh_index = int(rt.split("_")[1])
+                else:
+                    ssh_index = 0
+                
+                # Get remote IPs from variables
+                remote_ips = variables.get("remote_ips", [])
+                if not remote_ips or ssh_index >= len(remote_ips):
+                    raise ValueError(f"No remote IP found for SSH index {ssh_index}")
+                
+                remote_host = remote_ips[ssh_index]
+                remote_user = variables.get("remote_user", "root")
+                remote_ssh_port = variables.get("remote_ssh_port", 22)
+
+                # Create remote directory using SSH
+                print(f"Creating remote directory: {remote_output_dir} on {remote_host}")
+                ssh_cmd = f'ssh -p {remote_ssh_port} "{remote_user}@{remote_host}" "mkdir -p {remote_output_dir}"'
+                subprocess.run(ssh_cmd, shell=True, check=True)
 
         app_cmd = process_macro(app_name, app_general, app_self_cfg)
         print(f"[after process marco] {app_cmd=}\n")
 
-        rt_func = rt_registry.get(rt)
+        rt_func = rt_registry.get(rt.split("_")[0])  # Get base runtime type (e.g., "ssh" from "ssh_1")
         if not rt_func:
             raise ValueError(f"Unknown runtime: {rt}")
 
-        cmd = rt_func(app_cmd, rt_config, init_config, variables)
+        cmd = rt_func(app_cmd, rt_config_with_name, init_config, variables)
 
-        print(f"RUN: {cmd}")
+        print(f"RUN: {cmd}\n\n")
 
         if True: # Run
             run_in_bg = init_config.get("background", False)
@@ -317,19 +474,29 @@ def main():
         config, variables = load_toml_config(args.toml, global_kv)
         print(f"after load and parse vars, {config=}, {variables=} \n")
         # clear stubs file when starting vllm
-        if "vllm_template" in config["app"]:
+        if "vllm_template" in config["app"] or "vllm_remote_template" in config["app"]:
             print(f"clear old stubs")
             stub_path = f"{variables["work-dir"]}/exps/blitz-run/configs/config-stubs.json"
             with open(stub_path, "w") as f:
                 json.dump([], f, indent=2)
             
+        # smart runner need one foreground app as blocker across all runtimes
+        has_foreground_app = False
+        all_configs = []
         for rt_name, rt_config in check_and_get_runtime(config):
-            # smart runner need one foreground app as blocker  
-            def fold_is_bg(acc, cfg) -> bool:
-                return cfg.get("background", False) and acc
-            if reduce(fold_is_bg, rt_config.get("config", []), True):
-                raise ValueError("No foreground app found in runtime config!")
-            # postcondition: there must be one Forground app each run
+            all_configs.extend(rt_config.get("config", []))
+        
+        # Check if there's at least one foreground app across all runtimes
+        for cfg in all_configs:
+            if not cfg.get("background", False):
+                has_foreground_app = True
+                break
+                
+        if not has_foreground_app:
+            raise ValueError(f"No foreground app found in any runtime config! {config=}")
+            
+        # Run all apps in all runtimes
+        for rt_name, rt_config in check_and_get_runtime(config):
             run_apps(rt=rt_name, rt_config=rt_config, app_config=config["app"], variables=variables)
             
     except ValueError as e:
