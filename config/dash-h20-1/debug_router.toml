@@ -1,7 +1,7 @@
 # ========== 启动配置 ==========
 [runtime.raw]
 config = [
-    { app = "router", envs = { RUST_BACKTRACE = "full", LOG_LEVEL = "info" }, background = false },
+    { app = "router", envs = { RUST_BACKTRACE = "full", LOG_LEVEL = "debug" }, background = false },
 ]
 
 # ======= Shared variables ========
@@ -12,7 +12,7 @@ model_path = "${model-path}"
 blitzdir = "${work-dir}"
 tokenizer_path = "${model-path}/tokenizer.json"
 vllm_executable = "${venv-path}/bin/vllm serve"
-client_executable = "${work-dir}/target/release/client"
+client_executable = "${work-dir}/target/debug/client"
 base_vllm_port = 59180
 dataset_dir = "${dataset-dir}"
 log_dir = "${log-dir}"
@@ -20,7 +20,7 @@ output_dir = "${output-dir}"
 
 # ========== 路由器配置（不变）==========
 [app.router]
-executable = ["${blitzdir}/target/release/router_v2"]
+executable = ["${blitzdir}/target/debug/router_v2"]
 extra_args = ["--use-tokenizer"]
 
 [app.router.macro_rules]

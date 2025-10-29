@@ -1,12 +1,19 @@
 #!/bin/bash
 
 
+
 run_all_policies_with_retry() {
+    # "round-robin-q"
+    # "bounded-most-hit-q"
+    # "least-wait-token-q"
+    # "bailian-impl-q"
     local policies=(
         "round-robin-q"
         "bounded-most-hit-q"
         "least-wait-token-q"
         "bailian-impl-q"
+        "join-shortest-q-weight"
+        "join-shortest-q-tuple"
     )
 
     local backend_cfg="../../config/dash-h20-1/launch_vllm_16instances.toml"
@@ -89,7 +96,7 @@ plot_latest_policy_comparison() {
             policy="${BASH_REMATCH[1]}"
             # 只处理我们关心的策略（可选，也可不限制）
             case "$policy" in
-                round-robin-q|join-shortest-q|bounded-most-hit-q|least-wait-token-q|bailian-impl-q)
+                round-robin-q|join-shortest-q|bounded-most-hit-q|least-wait-token-q|bailian-impl-q|join-shortest-q-weight|join-shortest-q-tuple)
                     # 如果该策略尚未记录，或当前时间戳更大，则更新
                     if [[ -z "${latest_dirs[$policy]}" ]] || [[ "$basename_dir" > "${latest_dirs[$policy]##*/}" ]]; then
                         latest_dirs[$policy]="$dir"
@@ -134,5 +141,7 @@ plot_latest_policy_comparison() {
     return $ret
 }
 
-#run_all_policies_with_retry
-#plot_latest_policy_comparison
+run_all_policies_with_retry
+
+
+plot_latest_policy_comparison

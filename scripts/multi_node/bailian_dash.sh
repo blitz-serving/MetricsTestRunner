@@ -45,7 +45,7 @@ SSH_PORT=10022
 
 # Evaluation duration in seconds
 # TODO, client need about 2min to fill the channel
-TIME_IN_SEC=$((300 + 120))
+TIME_IN_SEC=$((1200 + 120))
 
 # Session name for tmux
 SESSION_NAME="bailian"
@@ -154,9 +154,11 @@ build_project_components() {
     
     # Build router_v2 with specified features
     if [ "$VERBOSE" = true ]; then
-        cargo build -p router_v2 --release --features "$features"
+        cargo build -p router_v2  --features "$features"
+        cargo build -p router_v2  --relase --features  "$features"
     else
-        cargo build -p router_v2 --release --features "$features" --quiet
+        cargo build -p router_v2  --features "$features" --quiet
+        cargo build -p router_v2  --release --features "$features" --quiet
     fi
     if [ $? -ne 0 ]; then
         echo "Error: Failed to build router_v2."
@@ -165,9 +167,11 @@ build_project_components() {
     
     # Build request simulator client
     if [ "$VERBOSE" = true ]; then
-        cargo build -p request-sim --bin client --release -j64
+        cargo build -p request-sim --bin client  -j64
+        cargo build -p request-sim --release --bin client -j64
     else
-        cargo build -p request-sim --bin client --release -j64 --quiet
+        cargo build -p request-sim --bin client -j64 --quiet
+        cargo build -p request-sim --release --bin client -j64 --quiet
     fi
     if [ $? -ne 0 ]; then
         echo "Error: Failed to build request-sim client."
@@ -204,7 +208,7 @@ setup_output_directory() {
 
 wait_for_vllm_startup() {
     local remote_dir="$OUTPUT_DIR"
-    local max_wait_sec=300  # 5 minutes
+    local max_wait_sec=240 # 4 minutes
     local elapsed=0
     local check_interval=5
 
@@ -253,7 +257,7 @@ wait_for_vllm_startup() {
 
 wait_for_remote_vllm_startup() {
     local remote_dir="$REMOTE_OUTPUT_DIR"
-    local max_wait_sec=300  # 5 minutes
+    local max_wait_sec=30 # the remote vllm should already started up
     local elapsed=0
     local check_interval=5
 
@@ -354,11 +358,12 @@ launch_experiment_session() {
             exit 1
         fi
         # Wait for remote vLLM startup instead of sleeping
-        if ! wait_for_remote_vllm_startup; then
-            echo "FATAL: Remote vLLM failed to start in time. Aborting experiment." >&2
-            cleanup_processes
-            exit 1
-        fi
+        
+        # if ! wait_for_remote_vllm_startup; then
+        #     echo "FATAL: Remote vLLM failed to start in time. Aborting experiment." >&2
+        #     cleanup_processes
+        #     exit 1
+        # fi
     fi
     
     # Launch router
@@ -394,6 +399,9 @@ post_process_results() {
 
     echo "Generating many cdf figs \\n"
     "$venv_path/bin/python" "../../figures/draw_cdf.py" "$output_dir/"
+
+    echo "Generating req number with time figs \\n"
+    "$venv_path/bin/python" "../../figures/draw_cumu.py" "$output_dir/"
 }
 
 # Cleanup processes after experiment
@@ -490,11 +498,11 @@ CONFIG3="$3"
 POLICY="$4"
 
 case "$POLICY" in
-    round-robin-q|join-shortest-q|bounded-most-hit-q|least-wait-token-q|bailian-impl-q)
+    round-robin-q|join-shortest-q|bounded-most-hit-q|least-wait-token-q|bailian-impl-q|join-shortest-q-weight|join-shortest-q-tuple)
         # Valid policy, do nothing
         ;;
     *)
-        echo "Error: policy must be one of 'round-robin-q', 'join-shortest-q', 'bounded-most-hit-q', 'least-wait-token-q', or 'bailian-impl-q', got: '$POLICY'" >&2
+        echo "Error: policy must be legal, got: '$POLICY'" >&2
         exit 1
         ;;
 esac

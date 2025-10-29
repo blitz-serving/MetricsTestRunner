@@ -45,6 +45,7 @@ remote_ips = ["172.27.18.133"]
 remote_ssh_port = 10022
 remote_output_dir = "${remote-output-dir}"
 output_dir = "${output-dir}"
+gpu_memory_utilization = 0.9
 
 # ========== 模板定义 ==========
 #  "--base-port", "${base_vllm_port}",
@@ -57,6 +58,7 @@ extra_args = [
     "${model_path}",
     "--max-num-batched-tokens", "1024",
     "--port", "${port}",
+    "--gpu-memory-utilization", "${gpu_memory_utilization}",
     "> ${log_file} 2>&1"
 ]
 
@@ -66,5 +68,6 @@ extra_args = [
     "${remote_model_path}",
     "--max-num-batched-tokens", "1024",
     "--port", "${port}",
+    "--gpu-memory-utilization", "${gpu_memory_utilization}",
     "> ${log_file} 2>&1"
 ]
