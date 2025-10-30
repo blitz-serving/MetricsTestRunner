@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================================
-# Metrics Test Runner - Bailian Evaluation Script
+# Metrics Test Runner - Bailian Evaluation Script (Modified Version)
 # =============================================================================
 # This script orchestrates distributed LLM inference experiments using:
 # 1. vLLM backends (model serving)
@@ -11,6 +11,10 @@
 # The script creates a tmux session with three windows for each component,
 # runs the experiment for a specified duration, collects logs, and generates
 # performance visualization figures.
+#
+# MODIFICATIONS:
+# - Added --output-dir and --remote-output-dir options to override default paths
+# - When these options are provided, they are used directly without ${TIMESTAMP}_${POLICY} suffix
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -56,8 +60,11 @@ SESSION_NAME="bailian"
 
 # Timestamped output directory for this run
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
+
+# These will be overridden if --output-dir or --remote-output-dir are provided
 OUTPUT_DIR="${OUTPUT_BASE}/${TIMESTAMP}"
 REMOTE_OUTPUT_DIR="${REMOTE_OUTPUT_BASE}/${TIMESTAMP}"
+
 # -----------------------------------------------------------------------------
 # Function Definitions
 # -----------------------------------------------------------------------------
@@ -74,6 +81,8 @@ print_usage() {
     echo "  --remote-output-dir DIR   Set remote output directory (default: $REMOTE_OUTPUT_DIR)"
     echo "  --remote-model-path PATH  Set remote model path (default: $REMOTE_MODEL_PATH)"
     echo "  --remote-venv-path PATH   Set remote virtual environment path (default: $REMOTE_VENV_PATH)"
+    echo "  --output-dir DIR      Set local output directory (overrides default timestamped path)"
+    echo "  --remote-output-dir DIR   Set remote output directory (overrides default timestamped path)"
     echo "  -v                    Verbose mode - show build output (default: silent)"
 }
 
@@ -190,20 +199,19 @@ setup_output_directory() {
     local features=$5
     local policy=$6
     
-    # Create timestamped output directory with policy suffix
-    local policy_output_dir="${output_dir}"
-    echo "Creating output directory: $policy_output_dir"
-    mkdir -p "$policy_output_dir"
+    # Create output directory (policy suffix already handled in main logic)
+    echo "Creating output directory: $output_dir"
+    mkdir -p "$output_dir"
     
     # Copy configuration files to output directory
-    cp "$config1" "$policy_output_dir/backend.toml"
-    cp "$config2" "$policy_output_dir/router.toml"
-    cp "$config3" "$policy_output_dir/client.toml"
+    cp "$config1" "$output_dir/backend.toml"
+    cp "$config2" "$output_dir/router.toml"
+    cp "$config3" "$output_dir/client.toml"
     
     # Save features string to commands.txt
-    echo "$features" > "$policy_output_dir/commands.txt"
+    echo "$features" > "$output_dir/commands.txt"
     
-    echo "$policy_output_dir"
+    echo "$output_dir"
 }
 
 wait_for_vllm_startup() {
@@ -359,11 +367,11 @@ launch_experiment_session() {
         fi
         # Wait for remote vLLM startup instead of sleeping
         
-        # if ! wait_for_remote_vllm_startup; then
-        #     echo "FATAL: Remote vLLM failed to start in time. Aborting experiment." >&2
-        #     cleanup_processes
-        #     exit 1
-        # fi
+        if ! wait_for_remote_vllm_startup; then
+            echo "FATAL: Remote vLLM failed to start in time. Aborting experiment." >&2
+            cleanup_processes
+            exit 1
+        fi
     fi
     
     # Launch router
@@ -432,6 +440,9 @@ trap cleanup_processes TERM
 
 POSITIONAL_ARGS=()
 VERBOSE=false
+USER_SPECIFIED_OUTPUT_DIR=false
+USER_SPECIFIED_REMOTE_OUTPUT_DIR=false
+
 while [[ $# -gt 0 ]]; do
     case $1 in
         -v)
@@ -454,6 +465,7 @@ while [[ $# -gt 0 ]]; do
         ;;
         --remote-output-dir)
             REMOTE_OUTPUT_DIR="$2"
+            USER_SPECIFIED_REMOTE_OUTPUT_DIR=true
             shift
             shift
         ;;
@@ -464,6 +476,12 @@ while [[ $# -gt 0 ]]; do
         ;;
         --remote-venv-path)
             REMOTE_VENV_PATH="$2"
+            shift
+            shift
+        ;;
+        --output-dir)
+            OUTPUT_DIR="$2"
+            USER_SPECIFIED_OUTPUT_DIR=true
             shift
             shift
         ;;
@@ -537,7 +555,15 @@ build_project_components "$FEATURES" "$WORK_DIR"
 cd "$PREV_DIR"
 
 # Setup output directory
-OUTPUT_DIR="${OUTPUT_DIR}_${POLICY}"
+# Only append policy suffix if user didn't specify custom output directories
+if [ "$USER_SPECIFIED_OUTPUT_DIR" = false ]; then
+    OUTPUT_DIR="${OUTPUT_DIR}_${POLICY}"
+fi
+
+if [ "$USER_SPECIFIED_REMOTE_OUTPUT_DIR" = false ]; then
+    REMOTE_OUTPUT_DIR="${REMOTE_OUTPUT_DIR}_${POLICY}"
+fi
+
 setup_output_directory "$OUTPUT_DIR" "$CONFIG1" "$CONFIG2" "$CONFIG3" "$FEATURES" "$POLICY"
 
 # Kill any previous processes
@@ -558,9 +584,9 @@ launch_experiment_session "$SESSION_NAME" "$WORK_DIR" "$VENV_PATH" "$CONFIG1" "$
 # Post-process results
 post_process_results "$OUTPUT_DIR" "$WORK_DIR" "$VENV_PATH"
 
-echo "moving logs to nfs"
-mv $OUTPUT_DIR $STORE_OUTPUT_BASE
-ssh -p "$SSH_PORT" "$ip" "mv '${REMOTE_OUTPUT_DIR}' '${STORE_REMOTE_OUTPUT_BASE}'"
+#echo "moving logs to nfs"
+#mv $OUTPUT_DIR $STORE_OUTPUT_BASE
+#ssh -p "$SSH_PORT" "$ip" "mv '${REMOTE_OUTPUT_DIR}' '${STORE_REMOTE_OUTPUT_BASE}'"
 
 # Cleanup processes
 cleanup_processes

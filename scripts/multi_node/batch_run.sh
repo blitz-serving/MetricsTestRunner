@@ -8,10 +8,7 @@ run_all_policies_with_retry() {
     # "least-wait-token-q"
     # "bailian-impl-q"
     local policies=(
-        "round-robin-q"
         "bounded-most-hit-q"
-        "least-wait-token-q"
-        "bailian-impl-q"
         "join-shortest-q-weight"
         "join-shortest-q-tuple"
     )
@@ -95,8 +92,9 @@ plot_latest_policy_comparison() {
         if [[ $basename_dir =~ ^[0-9]+_([a-zA-Z0-9_-]+)$ ]]; then
             policy="${BASH_REMATCH[1]}"
             # 只处理我们关心的策略（可选，也可不限制）
+            # join-shortest-q-weight|join-shortest-q-tuple
             case "$policy" in
-                round-robin-q|join-shortest-q|bounded-most-hit-q|least-wait-token-q|bailian-impl-q|join-shortest-q-weight|join-shortest-q-tuple)
+                round-robin-q|bounded-most-hit-q|least-wait-token-q|bailian-impl-q|join-shortest-q-weight|join-shortest-q-tuple)
                     # 如果该策略尚未记录，或当前时间戳更大，则更新
                     if [[ -z "${latest_dirs[$policy]}" ]] || [[ "$basename_dir" > "${latest_dirs[$policy]##*/}" ]]; then
                         latest_dirs[$policy]="$dir"
