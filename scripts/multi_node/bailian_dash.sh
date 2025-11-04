@@ -49,7 +49,7 @@ SSH_PORT=10022
 
 # Evaluation duration in seconds
 # TODO, client need about 2min to fill the channel
-TIME_IN_SEC=$((1200 + 120))
+TIME_IN_SEC=$((1200 + 180))
 
 # Session name for tmux
 SESSION_NAME="bailian"
@@ -106,12 +106,18 @@ validate_directory_exists() {
     fi
 }
 
-# Kill processes by pattern
 kill_processes_by_pattern() {
     local pattern=$1
     local description=$2
-    echo "Killing $description processes..."
-    pkill -f "$pattern" 2>/dev/null || true
+    echo "Killing $description processes (gracefully first)..."
+    
+    if pkill -f "$pattern" 2>/dev/null; then
+        sleep 5
+        if pkill -0 -f "$pattern" 2>/dev/null; then
+            echo "Some processes still running; forcing kill..."
+            pkill -9 -f "$pattern" 2>/dev/null || true
+        fi
+    fi
 }
 
 # Kill processes by pattern on remote machines
@@ -120,16 +126,28 @@ kill_remote_processes_by_pattern() {
     local description=$2
     local remote_ips=$3
     local remote_venv_path=$4
-    
+
     echo "Killing $description processes on remote machines..."
-    
+
     # Split remote_ips into an array
     IFS=',' read -ra IPS <<< "$remote_ips"
-    
+
     # Kill processes on each remote machine
     for ip in "${IPS[@]}"; do
         echo "Killing processes on $ip..."
-        ssh "-p ${SSH_PORT}" "$ip" "source $remote_venv_path/bin/activate && pkill -f -9 '$pattern' 2>/dev/null || true" 2>/dev/null || true
+
+        ssh "-p${SSH_PORT}" "$ip" "
+            source '$remote_venv_path/bin/activate' 2>/dev/null || true
+            # Stage 1: Send SIGTERM (default signal)
+            if pkill -f '$pattern' 2>/dev/null; then
+                sleep 5
+                # Stage 2: Check if any matching processes are still alive
+                if pkill -0 -f '$pattern' 2>/dev/null; then
+                    echo 'Some processes still running; forcing kill...'
+                    pkill -9 -f '$pattern' 2>/dev/null || true
+                fi
+            fi
+        " 2>/dev/null || true
     done
 }
 
@@ -356,7 +374,7 @@ launch_experiment_session() {
     # Launch vLLM backends if not skipped
 
     if [ "$no_backend" = false ]; then
-        echo "Launching vLLM backends and waiting 120s..."
+        echo "Launching vLLM backends and waiting ..."
         tmux new-window -t "$session_name" -n window1
         tmux send-keys -t "$session_name:window1" "$tmux_cmd && python ../../smart_runner.py --toml $config1 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --remote-output-dir=$remote_output_dir --remote-model-path=$remote_model_path --remote-venv-path=$remote_venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
         # Wait for vLLM startup with timeout
@@ -387,7 +405,7 @@ launch_experiment_session() {
     
     # Wait for experiment to complete
     echo "Running experiment for ${time_in_sec}s..."
-    sleep $(($time_in_sec + 30))  # Extra time for pending requests
+    sleep $(($time_in_sec))
 }
 
 # Merge client logs and generate figures
@@ -400,7 +418,7 @@ post_process_results() {
     cat "$output_dir"/client*.jsonl > "$output_dir/client.jsonl"
     
     echo "Generating overall figures..."
-    "$venv_path/bin/python" "../../figures/final_figure_zero.py" --output-dir="$output_dir/" 
+    "$venv_path/bin/python" "../../figures/analyze_load_with_time.py" "$output_dir/" 
 
     echo "Generating send gap fig \\n"
     "$venv_path/bin/python" "../../figures/draw_send_gap.py" "$output_dir/" --time-window=2.0
@@ -419,7 +437,8 @@ cleanup_processes() {
     kill_processes_by_pattern "$VENV_PATH/bin/vllm" "vLLM"
     kill_processes_by_pattern "router_v2" "router"
     kill_processes_by_pattern "smart_runner.py" "smart runner"
-    
+    kill_processes_by_pattern "$WORK_PATH/target/release/client" "previous client"
+
     # Clean up remote processes if remote IPs are provided
     if [ -n "$REMOTE_IPS" ] && [ -n "$REMOTE_VENV_PATH" ]; then
         kill_remote_processes_by_pattern "$REMOTE_VENV_PATH/bin/vllm" "remote vLLM" "$REMOTE_IPS" "$REMOTE_VENV_PATH"

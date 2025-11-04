@@ -35,19 +35,22 @@ def load_jsonl_data(file_path: str) -> List[Dict]:
     try:
         with open(file_path, 'r') as f:
             line_num = 0
+            skip_line_num = 0
             for line in f:
                 line_num += 1
                 if line.strip():  # Skip empty lines
                     try:
                         record = json.loads(line.strip())
                         # Filter out records where status is not '200'
-                        if record.get('status', '') == '200':
+                        status = record.get('status', '')
+                        if status == '200' or status == 'timeout':
                             data.append(record)
                         else:
-                            print(f"Warning: Skipping record on line {line_num} with status {record.get('status', 'unknown')}")
+                            skip_line_num += 1
                     except json.JSONDecodeError as e:
                         print(f"Warning: Skipping invalid JSON on line {line_num}: {e}")
                         continue
+            print(f"Warning: skipped {skip_line_num=} requests (not 200 or normal timeout)")
     except FileNotFoundError:
         print(f"Error: File {file_path} not found")
         sys.exit(1)
@@ -66,6 +69,7 @@ def extract_metrics(data: List[Dict]) -> Dict[str, np.ndarray]:
         Dictionary with arrays of extracted metrics
     """
     metrics = {
+        'rid': [],
         'ttft': [],
         'tpot': [],
         'inference_time': [],
@@ -74,14 +78,29 @@ def extract_metrics(data: List[Dict]) -> Dict[str, np.ndarray]:
     
     for item in data:
         # Extract metrics, converting strings to numbers where needed
-        metrics['ttft'].append(float(item.get('first_token_time', 0)))
-        metrics['tpot'].append(float(item.get('avg_time_between_tokens', 0)))
-        metrics['inference_time'].append(float(item.get('inference_time', 0)))
-        metrics['total_time'].append(float(item.get('total_time', 0)))
-    
+        status = item.get("status")
+        rid = str(item.get('client_id', ""))
+        metrics['rid'].append(rid)
+        
+        if status == '200':
+            ttft = float(item.get('first_token_time', 0))
+            tpot = float(item.get('avg_time_between_tokens', 0))
+            inference_time = float(item.get('inference_time', 0))
+            total_time = float(item.get('total_time', 0))
+            metrics['ttft'].append(ttft)
+            metrics['tpot'].append(tpot)
+            metrics['inference_time'].append(inference_time)
+            metrics['total_time'].append(total_time)
+        elif status == "timeout":
+            metrics['ttft'].append(-1)
+            metrics['tpot'].append(-1)
+            metrics['inference_time'].append(-1)
+            metrics['total_time'].append(-1)
+
     # Convert lists to numpy arrays for easier calculations
     for key in metrics:
-        metrics[key] = np.array(metrics[key])
+        if key != "rid":
+            metrics[key] = np.array(metrics[key])
     
     return metrics
 
@@ -150,6 +169,7 @@ def main():
     """Main function to process data and generate comparative plots."""
     parser = argparse.ArgumentParser(description='Generate comparative CDF plots for LLM metrics across different strategies')
     parser.add_argument('dirs', nargs='+', help='Directories containing client.jsonl files (each directory should be in format xxx_yyy where yyy is the strategy name)')
+    parser.add_argument('--label', type=str, default=None, help='Optional label to append to all plot titles as suffix {label}')
     args = parser.parse_args()
     
     # Extract strategy names from directory paths
@@ -177,22 +197,104 @@ def main():
         all_data[strategy_names[i]] = data
         metrics = extract_metrics(data)
         all_metrics[strategy_names[i]] = metrics
-        
-        # Print statistics for each metric
-        metric_info = {
-            'ttft': {'title': 'Time To First Token (TTFT)', 'xlabel': 'TTFT (ms)'},
-            'tpot': {'title': 'Time Per Output Token (TPOT)', 'xlabel': 'TPOT (ms)'},
-            'inference_time': {'title': 'Inference Time', 'xlabel': 'Inference Time (ms)'},
-            'total_time': {'title': 'Total Time', 'xlabel': 'Total Time (ms)'}
+    
+    # Correction function for timeout handling
+    print("\nApplying timeout correction...")
+    
+    # Get union of all request IDs
+    all_rids = set()
+    for strategy in strategy_names:
+        all_rids.update(all_metrics[strategy]['rid'])
+    
+    # Get maximum values across all policies
+    max_values = {
+        'ttft': 0,
+        'tpot': 0,
+        'inference_time': 0,
+        'total_time': 0
+    }
+    
+    for strategy in strategy_names:
+        for metric in ['ttft', 'tpot', 'inference_time', 'total_time']:
+            # Only consider non-negative values (ignore -1 timeout markers)
+            valid_values = [v for v in all_metrics[strategy][metric] if v >= 0]
+            if valid_values:
+                max_values[metric] = max(max_values[metric], max(valid_values))
+    
+    # Apply correction to each strategy
+    for strategy in strategy_names:
+        metrics = all_metrics[strategy]
+        corrected_metrics = {
+            'rid': list(all_rids),
+            'ttft': [],
+            'tpot': [],
+            'inference_time': [],
+            'total_time': []
         }
         
+        # Create mapping from rid to metrics for this strategy
+        rid_to_metrics = {}
+        for i, rid in enumerate(metrics['rid']):
+            rid_to_metrics[rid] = {
+                'ttft': metrics['ttft'][i],
+                'tpot': metrics['tpot'][i],
+                'inference_time': metrics['inference_time'][i],
+                'total_time': metrics['total_time'][i]
+            }
+        
+        success_rate = 0
+        # Fill in corrected values
+        for rid in all_rids:
+            if rid in rid_to_metrics:
+                # Use existing value if not timeout (-1), otherwise use max value
+                ok = True
+                for metric in ['ttft', 'tpot', 'inference_time', 'total_time']:
+                    value = rid_to_metrics[rid][metric]
+                    if value == -1:
+                        ok = False
+                        corrected_metrics[metric].append(max_values[metric])
+                    else: # valid data
+                        corrected_metrics[metric].append(value)
+                if ok:
+                    success_rate += 1
+            else:
+                # Missing request ID - treat as timeout
+                for metric in ['ttft', 'tpot', 'inference_time', 'total_time']:
+                    corrected_metrics[metric].append(max_values[metric])
+        
+        print(f"Valid data point for {strategy} is {success_rate}, Rate = {success_rate / len(all_rids)}")
+
+        # Convert lists to numpy arrays
+        for key in ['ttft', 'tpot', 'inference_time', 'total_time']:
+            corrected_metrics[key] = np.array(corrected_metrics[key])
+        
+        # Replace original metrics with corrected ones
+        all_metrics[strategy] = corrected_metrics
+        
+        # Assert all strategies have same number of data points
+        assert len(corrected_metrics['rid']) == len(all_rids), f"Strategy {strategy} has incorrect number of data points"
+        for metric in ['ttft', 'tpot', 'inference_time', 'total_time']:
+            assert len(corrected_metrics[metric]) == len(all_rids), f"Strategy {strategy} has incorrect number of {metric} data points"
+    
+    print(f"Correction applied. All strategies now have {len(all_rids)} data points.")
+
+    # Print statistics for each metric (moved outside the loop since we're using corrected metrics)
+    metric_info = {
+        'ttft': {'title': 'Time To First Token (TTFT)', 'xlabel': 'TTFT (ms)'},
+        'tpot': {'title': 'Time Per Output Token (TPOT)', 'xlabel': 'TPOT (ms)'},
+        'inference_time': {'title': 'Inference Time', 'xlabel': 'Inference Time (ms)'},
+        'total_time': {'title': 'Total Time', 'xlabel': 'Total Time (ms)'}
+    }
+    
+    for i, strategy in enumerate(strategy_names):
+        print(f"\nStatistics for {strategy}:")
         for metric_name, info in metric_info.items():
-            stats = calculate_statistics(metrics[metric_name])
-            print(f"\n{strategy_names[i]} - {metric_name.upper()} Statistics:")
-            print(f"  Mean: {stats['mean']:.2f}")
-            print(f"  P50: {stats['p50']:.2f}")
-            print(f"  P95: {stats['p95']:.2f}")
-            print(f"  P99: {stats['p99']:.2f}")
+            stats = calculate_statistics(all_metrics[strategy][metric_name])
+            print(f"  {metric_name.upper()}:")
+            print(f"    Mean: {stats['mean']:.2f}")
+            print(f"    P50: {stats['p50']:.2f}")
+            print(f"    P95: {stats['p95']:.2f}")
+            print(f"    P99: {stats['p99']:.2f}")
     
     # Define metric information for plotting
     metric_info = {
@@ -212,8 +314,13 @@ def main():
         # Generate output file paths (save to each directory)
         output_files = [os.path.join(args.dirs[i], f"{metric_name}_comparative_cdf.png") for i in range(len(args.dirs))]
         
+        # Append label to title if provided
+        plot_title = info['title']
+        if args.label:
+            plot_title += f" {args.label}"
+
         # Generate and save the comparative plot
-        plot_comparative_cdf(metric_data, strategy_names, info['title'], info['xlabel'], output_files)
+        plot_comparative_cdf(metric_data, strategy_names, plot_title, info['xlabel'], output_files)
 
 
 if __name__ == "__main__":

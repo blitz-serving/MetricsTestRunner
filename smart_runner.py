@@ -157,47 +157,75 @@ def process_macro(
 
 
 def kill_local_process_on_port(port: int):
-    """Kill local process occupying a specific port"""
-    try:
-        # Try using lsof first (more common on modern systems)
-        result = subprocess.run(['lsof', '-i', f':{port}'], capture_output=True, text=True)
-        if result.returncode == 0 and result.stdout:
-            lines = result.stdout.strip().split('\n')
-            if len(lines) > 1:  # Header + at least one process
-                for line in lines[1:]:  # Skip header
-                    parts = line.split()
-                    if len(parts) >= 2:
-                        pid = parts[1]
-                        try:
-                            os.kill(int(pid), signal.SIGTERM)
-                            print(f"Killed local process {pid} on port {port}")
-                            time.sleep(1)  # Give process time to terminate
-                            os.kill(int(pid), signal.SIGKILL)
-                        except ProcessLookupError:
-                            pass  # Process already terminated
-                        except PermissionError:
-                            print(f"Permission denied to kill process {pid} on port {port}")
+    cmd = f"lsof -i :{port} -t | xargs -r -- kill -9"
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Failed to kill process on port {port}: {result.stderr.strip()}")
+    else:
+        print(f"Sent SIGKILL to process(es) on port {port}")
 
-    except FileNotFoundError:
-        print(f"Warning: Neither lsof nor netstat found to check port {port}")
-    except Exception as e:
-        print(f"Error killing local process on port {port}: {e}")
+# def kill_local_process_on_port(port: int):
+#     """Kill local process occupying a specific port"""
+#     try:
+#         # Try using lsof first (more common on modern systems)
+#         result = subprocess.run(['lsof', '-i', f':{port}'], capture_output=True, text=True)
+#         if result.returncode == 0 and result.stdout:
+#             lines = result.stdout.strip().split('\n')
+#             if len(lines) > 1:  # Header + at least one process
+#                 for line in lines[1:]:  # Skip header
+#                     parts = line.split()
+#                     if len(parts) >= 2:
+#                         pid = parts[1]
+#                         try:
+#                             os.kill(int(pid), signal.SIGTERM)
+#                             print(f"Killed local process {pid} on port {port}")
+#                             time.sleep(1)  # Give process time to terminate
+#                             os.kill(int(pid), signal.SIGKILL)
+#                         except ProcessLookupError:
+#                             pass  # Process already terminated
+#                         except PermissionError:
+#                             print(f"Permission denied to kill process {pid} on port {port}")
 
+#     except FileNotFoundError:
+#         print(f"Warning: Neither lsof nor netstat found to check port {port}")
+#     except Exception as e:
+#         print(f"Error killing local process on port {port}: {e}")
 
 def kill_remote_process_on_port(remote_host: str, remote_user: str, remote_ssh_port: int, port: int):
-    """Kill remote process occupying a specific port"""
+    """Kill remote process occupying a specific port using kill -9."""
     try:
-        # Command to kill process on remote host
-        # Uses lsof if available, falls back to netstat
-        kill_cmd = f"""ssh -p {remote_ssh_port} "{remote_user}@{remote_host}" 'if command -v lsof >/dev/null 2>&1; then PID=$(lsof -i :{port} -t 2>/dev/null); if [ -n "$PID" ]; then kill $PID 2>/dev/null && echo "Killed remote process $PID on port {port}"; sleep 1; fi; else if command -v netstat >/dev/null 2>&1; then for pid in $(netstat -tlnp 2>/dev/null | grep ":{port}" | awk "{{print \$7}}" | cut -d"/" -f1); do kill $pid 2>/dev/null && echo "Killed remote process $pid on port {port}"; done; fi; fi'"""
-        
-        result = subprocess.run(kill_cmd, shell=True, capture_output=True, text=True)
-        if result.returncode == 0 and result.stdout:
-            print(result.stdout.strip())
-        elif result.stderr:
-            print(f"Error killing remote process on port {port}: {result.stderr}")
+        ssh_cmd = [
+            "ssh",
+            "-p", str(remote_ssh_port),
+            f"{remote_user}@{remote_host}",
+            f"lsof -i :{port} -t | xargs -r kill -9"
+        ]
+        result = subprocess.run(ssh_cmd, capture_output=True, text=True)
+
+        if result.returncode == 0:
+            print(f"Killed remote process(es) on port {port}.")
+        else:
+            if result.stderr:
+                print(f"Error killing remote process on port {port}: {result.stderr.strip()}")
+            else:
+                print(f"No process found on port {port}.")
     except Exception as e:
         print(f"Error killing remote process on port {port}: {e}")
+
+# def kill_remote_process_on_port(remote_host: str, remote_user: str, remote_ssh_port: int, port: int):
+#     """Kill remote process occupying a specific port"""
+#     try:
+#         # Command to kill process on remote host
+#         # Uses lsof if available, falls back to netstat
+#         kill_cmd = f"""ssh -p {remote_ssh_port} "{remote_user}@{remote_host}" 'if command -v lsof >/dev/null 2>&1; then PID=$(lsof -i :{port} -t 2>/dev/null); if [ -n "$PID" ]; then kill $PID 2>/dev/null && echo "Killed remote process $PID on port {port}"; sleep 1; fi; else if command -v netstat >/dev/null 2>&1; then for pid in $(netstat -tlnp 2>/dev/null | grep ":{port}" | awk "{{print \$7}}" | cut -d"/" -f1); do kill $pid 2>/dev/null && echo "Killed remote process $pid on port {port}"; done; fi; fi'"""
+        
+#         result = subprocess.run(kill_cmd, shell=True, capture_output=True, text=True)
+#         if result.returncode == 0 and result.stdout:
+#             print(result.stdout.strip())
+#         elif result.stderr:
+#             print(f"Error killing remote process on port {port}: {result.stderr}")
+#     except Exception as e:
+#         print(f"Error killing remote process on port {port}: {e}")
 
 
 @register("raw")

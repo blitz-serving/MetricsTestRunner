@@ -56,7 +56,7 @@ gpu_memory_utilization = 0.9
 executable = ["${vllm_executable}"]
 extra_args = [
     "${model_path}",
-    "--max-num-batched-tokens", "8192",
+    "--max-num-batched-tokens", "1024",
     "--port", "${port}",
     "--gpu-memory-utilization", "${gpu_memory_utilization}",
     "> ${log_file} 2>&1"
@@ -66,7 +66,7 @@ extra_args = [
 executable = ["${remote_vllm_executable}"]
 extra_args = [
     "${remote_model_path}",
-    "--max-num-batched-tokens", "8192",
+    "--max-num-batched-tokens", "1024",
     "--port", "${port}",
     "--gpu-memory-utilization", "${gpu_memory_utilization}",
     "> ${log_file} 2>&1"

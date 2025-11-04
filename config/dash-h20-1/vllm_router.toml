@@ -1,7 +1,7 @@
 # ========== 启动配置 ==========
 [runtime.raw]
 config = [
-    { app = "router", envs = { RUST_BACKTRACE = "full", LOG_LEVEL = "reqwest=debug,hyper::client::pool=debug,info" }, background = false },
+    { app = "router", envs = { RUST_BACKTRACE = "full", LOG_LEVEL = "reqwest=debug,hyper::client::pool=debug,router_v2::vllmlet=debug,info" }, background = false },
 ]
 
 # ======= Shared variables ========
@@ -58,6 +58,7 @@ extra_args = ["--use-tokenizer"]
 "--mock-transfer-millis" = "mock_transfer_time"
 "--tensor-parallel-size" = "tp_size"
 "--max-batch-prefill-tokens" = "mbpt"
+"--statistic-path" = "statistic_path"
 
 [app.router.config]
 validation_workers = 5
@@ -71,6 +72,7 @@ param_size = 16
 cli_stub_cfg = "${blitzdir}/exps/blitz-run/configs/config-stubs.json"
 deploy_cfg = "${blitzdir}/exps/blitz-run/configs/config-router.json"
 log_path = "${output_dir}/router_v2.log"
+statistic_path = "${output_dir}/statistic.log"
 context_length = 15999
 total_tokens = 16000
 concurrent_req = 4096
