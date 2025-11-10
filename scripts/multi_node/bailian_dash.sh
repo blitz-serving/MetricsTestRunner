@@ -428,6 +428,12 @@ post_process_results() {
 
     echo "Generating req number with time figs \\n"
     "$venv_path/bin/python" "../../figures/draw_cumu.py" "$output_dir/"
+
+    echo "Generating figs based statistics \\n"
+    "$venv_path/bin/python" "../../figures/analyze_statistics.py" "$output_dir/"
+
+    echo "Generating figs based statistics \\n"
+    "$venv_path/bin/python" "../../figures/analyze_statistics_smooth.py" "$output_dir/"
 }
 
 # Cleanup processes after experiment
@@ -535,7 +541,7 @@ CONFIG3="$3"
 POLICY="$4"
 
 case "$POLICY" in
-    round-robin-q|join-shortest-q|bounded-most-hit-q|least-wait-token-q|bailian-impl-q|join-shortest-q-weight|join-shortest-q-tuple)
+    round-robin-q|join-shortest-q|bounded-most-hit-q|least-wait-token-q|bailian-impl-q|join-shortest-q-weight|join-shortest-q-tuple|random-q|bailian-impl-kv|bailian-impl-rqs|bailian-impl-tks|bailian-impl-00|bailian-impl-01|bailian-impl-02|bailian-impl-03|bailian-impl-04|bailian-impl-05|bailian-impl-06|bailian-impl-07|bailian-impl-08|bailian-impl-09|bailian-impl-10)
         # Valid policy, do nothing
         ;;
     *)
@@ -600,15 +606,15 @@ cleanup_tmux_session "$SESSION_NAME"
 # Launch experiment in tmux session
 launch_experiment_session "$SESSION_NAME" "$WORK_DIR" "$VENV_PATH" "$CONFIG1" "$CONFIG2" "$CONFIG3" "$OUTPUT_BASE" "$OUTPUT_DIR" "$MODEL_PATH" "$DATASET_DIR" "$NO_BACKEND" "$TIME_IN_SEC" "$REMOTE_OUTPUT_DIR" "$REMOTE_MODEL_PATH" "$REMOTE_VENV_PATH"
 
+# Cleanup processes
+cleanup_processes
+
 # Post-process results
 post_process_results "$OUTPUT_DIR" "$WORK_DIR" "$VENV_PATH"
 
 #echo "moving logs to nfs"
 #mv $OUTPUT_DIR $STORE_OUTPUT_BASE
 #ssh -p "$SSH_PORT" "$ip" "mv '${REMOTE_OUTPUT_DIR}' '${STORE_REMOTE_OUTPUT_BASE}'"
-
-# Cleanup processes
-cleanup_processes
 
 # Final message
 echo "Experiment completed successfully!"

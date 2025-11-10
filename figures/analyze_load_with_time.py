@@ -72,19 +72,19 @@ def extract_log_data(log_file_path):
     # Pattern 1: Request routing with input_length and decode_length (as described in requirements)
     route_pattern = re.compile(
         r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z).*?'
-        r'Request\((\d+)\).*?input_length (\d+) decode_length (\d+).*?added to vLLM#(\d+)'
+        r'Request_(\d+)\s+queued\s+\d+us,\s+with\s+input\s+length\s+(\d+)\s+output\s+length\s+(\d+),\s+added\s+to\s+vLLM#(\d+)'
     )
     
     # Pattern 2: Prefill done with hit_cnt (as described in requirements)
     prefill_pattern = re.compile(
         r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z).*?'
-        r'Vllm#(\d+)::Request#\((\d+)\) prefill done hit_cnt (\d+)!'
+        r'Vllm#(\d+)::Request_(\d+)\s+prefill\s+with\s+(\d+)\s+actual\s+hit\s+tokens\s+done!'
     )
     
     # Pattern 3: Decode done (as described in requirements)
     decode_pattern = re.compile(
         r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z).*?'
-        r'Vllm#(\d+)::Request\((\d+)\) is finished generating \d+ tokens'
+        r'Vllm#(\d+)::Request_(\d+)\s+is\s+finished\s+generating\s+(\d+)\s+tokens'
     )
     
     with open(log_file_path, 'r') as file:

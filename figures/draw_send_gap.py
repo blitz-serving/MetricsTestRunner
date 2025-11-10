@@ -51,7 +51,7 @@ def aggregate_data(data: List[Dict], time_window: float) -> List[Tuple[float, fl
     for entry in data:
         try:
             s_time = float(entry.get('s_time', 0))
-            send_gap = float(entry.get('send_gap', 0))
+            send_gap = float(entry.get('s_time_drift', 0))
             if send_gap != 0:  # Only consider non-zero send_gap values
                 valid_data.append((s_time, send_gap))
         except (ValueError, TypeError):

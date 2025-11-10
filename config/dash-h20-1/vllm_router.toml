@@ -1,7 +1,7 @@
 # ========== 启动配置 ==========
 [runtime.raw]
 config = [
-    { app = "router", envs = { RUST_BACKTRACE = "full", LOG_LEVEL = "reqwest=debug,hyper::client::pool=debug,router_v2::vllmlet=debug,info" }, background = false },
+    { app = "router", envs = { RUST_BACKTRACE = "full", LOG_LEVEL = "router_v2::vllmlet=debug,router_v2::queue=debug,info" }, background = false },
 ]
 
 # ======= Shared variables ========

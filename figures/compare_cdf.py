@@ -79,7 +79,7 @@ def extract_metrics(data: List[Dict]) -> Dict[str, np.ndarray]:
     for item in data:
         # Extract metrics, converting strings to numbers where needed
         status = item.get("status")
-        rid = str(item.get('client_id', ""))
+        rid = str(item.get('request_id', ""))
         metrics['rid'].append(rid)
         
         if status == '200':
@@ -164,6 +164,88 @@ def plot_comparative_cdf(all_metrics: Dict[str, Dict[str, np.ndarray]],
     
     plt.close()
 
+def plot_comparative_cdf_zoom_in(all_metrics: Dict[str, np.ndarray], 
+                        strategy_names: List[str], 
+                        title: str, 
+                        xlabel: str, 
+                        output_files: List[str]):
+    """
+    Generate a comparative CDF plot with:
+      - Main CDF curves
+      - Inset zooming into y ∈ [0.8, 1.0]
+      - P99 vertical lines for each strategy (same color as curve)
+    """
+    fig, ax = plt.subplots(figsize=(12, 8))
+    
+    # Store color mapping for each strategy
+    strategy_colors = {}
+
+    # Plot main CDF curves and record colors
+    for strategy in strategy_names:
+        data = all_metrics[strategy]
+        sorted_data = np.sort(data)
+        yvals = np.arange(1, len(sorted_data) + 1) / len(sorted_data)
+        line, = ax.plot(sorted_data, yvals, linewidth=1.5, label=strategy)
+        strategy_colors[strategy] = line.get_color()
+
+    # Compute and plot P99 lines
+    p99_values = {}
+    for strategy in strategy_names:
+        data = all_metrics[strategy]
+        p99 = np.percentile(data, 99)
+        p99_values[strategy] = p99
+        ax.axvline(p99, color=strategy_colors[strategy], linestyle='--', linewidth=1.2, alpha=0.7,
+                   label=f"{strategy} P99")
+
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel('Cumulative Probability')
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize='small')
+
+    # Set x-axis limit
+    max_val = max([np.max(all_metrics[strategy]) for strategy in strategy_names])
+    ax.set_xlim(0, max_val * 1.05)
+
+    # --- Inset axes for zoom-in (y ∈ [0.8, 1.0]) ---
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    axins = inset_axes(
+        ax,
+        width="100%",  
+        height="100%",  
+        bbox_to_anchor=(0.57, 0.4, 0.4, 0.3), 
+        bbox_transform=ax.transAxes,
+        loc='lower left'
+    )
+
+    for strategy in strategy_names:
+        data = all_metrics[strategy]
+        sorted_data = np.sort(data)
+        yvals = np.arange(1, len(sorted_data) + 1) / len(sorted_data)
+        mask = (yvals >= 0.8) & (yvals <= 1.0)
+        if np.any(mask):
+            axins.plot(sorted_data[mask], yvals[mask], 
+                       linewidth=1.5, color=strategy_colors[strategy])
+
+        # Add P99 vertical line in inset if visible
+        p99 = p99_values[strategy]
+        axins.axvline(p99, color=strategy_colors[strategy], linestyle='--', linewidth=1, alpha=0.7)
+
+    axins.set_ylim(0.8, 1.0)
+    axins.set_xlim(ax.get_xlim())  # Keep same x-range as main plot
+    axins.grid(True, alpha=0.3)
+    axins.set_facecolor('white')
+    axins.tick_params(labelsize=8)
+    for spine in axins.spines.values():
+        spine.set_edgecolor('gray')
+        spine.set_linewidth(0.8)
+
+    # Save plot
+    for output_file in output_files:
+        fig.savefig(output_file, dpi=300, bbox_inches='tight')
+        print(f"  Comparative CDF plot with P99 lines saved to {output_file}")
+    
+    plt.close(fig)
 
 def main():
     """Main function to process data and generate comparative plots."""
@@ -206,6 +288,8 @@ def main():
     for strategy in strategy_names:
         all_rids.update(all_metrics[strategy]['rid'])
     
+    print(f"\n all requests numbers {len(all_rids)}")
+
     # Get maximum values across all policies
     max_values = {
         'ttft': 0,
@@ -295,7 +379,20 @@ def main():
             print(f"    P50: {stats['p50']:.2f}")
             print(f"    P95: {stats['p95']:.2f}")
             print(f"    P99: {stats['p99']:.2f}")
-    
+
+    for dir_path in args.dirs:
+        perf_log_path = os.path.join(dir_path, 'perf.log')
+        with open(perf_log_path, "w") as file:
+            for i, strategy in enumerate(strategy_names):
+                file.write(f"\nStatistics for {strategy}:\n")
+                for metric_name, info in metric_info.items():
+                    stats = calculate_statistics(all_metrics[strategy][metric_name])
+                    file.write(f"  {metric_name.upper()}:\n")
+                    file.write(f"    Mean: {stats['mean']:.2f}\n")
+                    file.write(f"    P50: {stats['p50']:.2f}\n")
+                    file.write(f"    P95: {stats['p95']:.2f}\n")
+                    file.write(f"    P99: {stats['p99']:.2f}\n")
+                    
     # Define metric information for plotting
     metric_info = {
         'ttft': {'title': 'Comparative CDF of Time To First Token (TTFT)', 'xlabel': 'TTFT (ms)'},
@@ -320,7 +417,8 @@ def main():
             plot_title += f" {args.label}"
 
         # Generate and save the comparative plot
-        plot_comparative_cdf(metric_data, strategy_names, plot_title, info['xlabel'], output_files)
+        #plot_comparative_cdf(metric_data, strategy_names, plot_title, info['xlabel'], output_files)
+        plot_comparative_cdf_zoom_in(metric_data, strategy_names, plot_title, info['xlabel'], output_files)
 
 
 if __name__ == "__main__":

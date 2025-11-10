@@ -14,10 +14,10 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(4.0)
+SCALING_FACTORS=(5.0)
 
 # Define batch sizes to test
-BATCH_SIZES=(1024)
+BATCH_SIZES=(4096)
 
 REMOTE_IPS="172.27.18.133"
 SSH_PORT=10022
@@ -28,7 +28,7 @@ SSH_PORT=10022
 # Each policies are about 
 #POLICIES=("round-robin-q" "random-q" "bailian-impl-q" "join-shortest-q-weight" "join-shortest-q-tuple")
 # Noted that bound-mosthit-q can only run 1024 now.. "least-wait-token-q" "bounded-most-hit-q"
-POLICIES=("round-robin-q")
+POLICIES=("round-robin-q" "random-q" "join-shortest-q-weight" "join-shortest-q-tuple")
 #POLICIES=("bailian-impl-q" "bailian-impl-kv" "bailian-impl-rqs" "bailian-impl-tks")
 
 
@@ -76,7 +76,7 @@ echo "Template generation completed successfully."
 echo "Phase 2: Running experiments for each batch size, scaling factor, and policy..."
 
 for bs in ${BATCH_SIZES[@]}; do
-    TAG="batch${bs}_u0.9_cache_dbg"
+    TAG="batch${bs}_u0.9_n5"
     BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}.toml"
     
     for sf in ${SCALING_FACTORS[@]}; do
@@ -174,7 +174,7 @@ echo "All experiments completed."
 echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
-    TAG="batch${bs}_u0.9_cache_dbg"
+    TAG="batch${bs}_u0.9_n5"
     
     for sf in ${SCALING_FACTORS[@]}; do
         echo "Generating plots for batch size: $bs, scaling factor: $sf"

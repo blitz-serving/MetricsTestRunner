@@ -1,1 +1,2 @@
 *.log
+scripts/multi_node/generated_configs/**
