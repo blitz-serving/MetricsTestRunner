@@ -17,7 +17,7 @@
 SCALING_FACTORS=(5.0)
 
 # Define batch sizes to test
-BATCH_SIZES=(1024)
+BATCH_SIZES=(1024 4096)
 
 REMOTE_IPS="172.27.21.64"
 SSH_PORT=10022
@@ -29,8 +29,8 @@ SSH_PORT=10022
 #POLICIES=("round-robin-q" "random-q" "bailian-impl-q" "join-shortest-q-weight" "join-shortest-q-tuple")
 # Noted that bound-mosthit-q can only run 1024 now.. "least-wait-token-q" "bounded-most-hit-q"
 #POLICIES=("round-robin-q" "random-q" "bailian-impl-00" "bailian-impl-01" "bailian-impl-02" "bailian-impl-03" "bailian-impl-04" "bailian-impl-05" "bailian-impl-06" "bailian-impl-07" "bailian-impl-08" "bailian-impl-09" "bailian-impl-10" "least-wait-token-q" "join-shortest-q-weight")
-#POLICIES=("round-robin-q" "dynamo-deterministic" "least-wait-token-random" "least-wait-token-q" "least-wait-token-bs" "bailian-impl-06" "join-shortest-q-weight" "join-shortest-q-tuple")
-POLICIES=("least-wait-token-bs")
+POLICIES=("round-robin-q" "dynamo-deterministic" "least-wait-token-random" "least-wait-token-q" "least-wait-token-bs" "bailian-impl-06" "join-shortest-q-weight" "join-shortest-q-tuple")
+
 
 # Base paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -76,7 +76,7 @@ echo "Template generation completed successfully."
 echo "Phase 2: Running experiments for each batch size, scaling factor, and policy..."
 
 for bs in ${BATCH_SIZES[@]}; do
-    TAG="batch${bs}_u0.9_dynamo_bailian"
+    TAG="batch${bs}_u0.9_dynamo_bailian_round2"
     BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}.toml"
     
     for sf in ${SCALING_FACTORS[@]}; do
@@ -174,7 +174,7 @@ echo "All experiments completed."
 echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
-    TAG="batch${bs}_u0.9_dynamo_bailian"
+    TAG="batch${bs}_u0.9_dynamo_bailian_round2"
     
     for sf in ${SCALING_FACTORS[@]}; do
         echo "Generating plots for batch size: $bs, scaling factor: $sf"

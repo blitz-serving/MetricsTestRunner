@@ -21,9 +21,8 @@ import numpy as np
 from pathlib import Path
 
 # Constants
-TIME_BIN = 15  # time bin window, <10s will cause too much data point number;
+TIME_BIN = 2  # time bin window, <10s will cause too much data point number;
 LOG_FILENAME = "router_v2.log"
-INSTANCE_LIST = [0, 7, 8, 15] # selected instance to plot
 
 # Define data structures for better organization
 RequestRoute = namedtuple('RequestRoute', ['timestamp', 'request_id', 'input_length', 'decode_length', 'instance_id'])
@@ -31,11 +30,13 @@ PrefillDone = namedtuple('PrefillDone', ['timestamp', 'request_id', 'hit_cnt', '
 DecodeDone = namedtuple('DecodeDone', ['timestamp', 'request_id', 'instance_id'])
 RequestLifecycle = namedtuple('RequestLifecycle', ['request_id', 'instance_id', 'input_length', 'decode_length',
                                                   'route_time', 'prefill_time', 'decode_time', 'hit_cnt'])
-
 def parse_arguments():
-    """Parse command line arguments."""
     parser = argparse.ArgumentParser(description='Generate timeline charts from router_v2.log')
     parser.add_argument('directory', type=str, help='Directory containing router_v2.log file')
+    parser.add_argument('--smooth-window', type=int, default=5,
+                        help='Sliding window size for smoothing time series (default: 5)')
+    parser.add_argument('--instances', type=int, nargs='+', default=[0, 7, 8, 15],
+                        help='List of vLLM instance IDs to plot (default: 0 7 8 15)')
     return parser.parse_args()
 
 def parse_timestamp(log_timestamp):
@@ -75,14 +76,29 @@ def extract_log_data(log_file_path):
         r'Request_(\d+)\s+queued\s+\d+us,\s+with\s+input\s+length\s+(\d+)\s+output\s+length\s+(\d+),\s+added\s+to\s+vLLM#(\d+)'
     )
     
+    backup_route_pattern = re.compile(
+        r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z).*?'
+        r'Request_(\d+)\s+queued\s+\d+us,\s+with\s+input\s+length\s+(\d+)\s+output\s+length\s+(\d+),\s+added\s+to\s+vLLM#(\d+)'
+    )
+
     # Pattern 2: Prefill done with hit_cnt (as described in requirements)
     prefill_pattern = re.compile(
         r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z).*?'
-        r'Vllm#(\d+)::Request_(\d+)\s+prefill\s+with\s+(\d+)\s+actual\s+hit\s+tokens\s+done!'
+        r'Vllm#(\d+)::Request_(\d+)\s+prefill\s+done\s+with\s+(\d+)\s+actual\s+hit\s+tokens!'
     )
     
+    backup_prefill_pattern = re.compile(
+        r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z).*?'
+        r'Vllm#(\d+)::Request_(\d+)\s+prefill\s+with\s+(\d+)\s+actual\s+hit\s+tokens\s+done!'
+    )
+
     # Pattern 3: Decode done (as described in requirements)
     decode_pattern = re.compile(
+        r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z).*?'
+        r'Vllm#(\d+)::Request_(\d+)\s+is\s+finished\s+generating\s+(\d+)\s+tokens'
+    )
+    
+    backup_decode_pattern = re.compile(
         r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z).*?'
         r'Vllm#(\d+)::Request_(\d+)\s+is\s+finished\s+generating\s+(\d+)\s+tokens'
     )
@@ -125,6 +141,9 @@ def extract_log_data(log_file_path):
             # Try to match prefill completion (enhanced pattern first)
             prefill_match = prefill_pattern.search(line)
             
+            if not prefill_match:
+                prefill_match = backup_prefill_pattern.search(line)
+                
             if prefill_match:
                 timestamp_str, instance_id, req_id = prefill_match.group(1), int(prefill_match.group(2)), int(prefill_match.group(3))
                 timestamp = parse_timestamp(timestamp_str)
@@ -312,15 +331,28 @@ def compute_metrics(lifecycles, bin_edges, start_time):
     
     return metrics
 
-def generate_and_save_charts(metrics, bin_centers, instance_ids, output_dir):
+def parse_arguments():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description='Generate timeline charts from router_v2.log')
+    parser.add_argument('directory', type=str, help='Directory containing router_v2.log file')
+    parser.add_argument('--smooth-window', type=int, default=5,
+                        help='Sliding window size for smoothing time series (default: 5)')
+    parser.add_argument('--instances', type=int, nargs='+', default=[0, 7, 8, 15],
+                        help='List of vLLM instance IDs to plot (default: 0 7 8 15)')
+    return parser.parse_args()
+
+
+def generate_and_save_charts(metrics, bin_centers, all_instance_ids, selected_instances, output_dir, smooth_window=5):
     """
-    Generate and save the 5 timeline charts.
+    Generate and save the 5 timeline charts with optional smoothing.
     
     Args:
         metrics (dict): Computed metrics
         bin_centers (list): Time bin centers in seconds
-        instance_ids (list): List of instance IDs (all available)
+        all_instance_ids (list): All instance IDs present in data
+        selected_instances (list): User-specified instance IDs to plot
         output_dir (str): Directory to save the charts
+        smooth_window (int): Size of the moving average window
     """
     chart_configs = [
         {
@@ -355,16 +387,19 @@ def generate_and_save_charts(metrics, bin_centers, instance_ids, output_dir):
         }
     ]
     
-    # 🔹 仅绘制 INSTANCE_LIST 中存在的实例
-    filtered_instance_ids = [inst for inst in INSTANCE_LIST if inst in instance_ids]
+    filtered_instance_ids = [inst for inst in selected_instances if inst in all_instance_ids]
     if not filtered_instance_ids:
-        print(f"Warning: No instances from INSTANCE_LIST {INSTANCE_LIST} found in data. No charts will be plotted.")
+        print(f"Warning: No instances from {selected_instances} found in data. No charts will be plotted.")
         return
 
     print(f"Selected instance ids = {filtered_instance_ids}")
 
-    # Set up plot style
+    # Generate suffix for filenames
+    instance_suffix = '_'.join(map(str, sorted(filtered_instance_ids)))
+    instance_suffix += f"_smooth{smooth_window}"
+
     plt.style.use('seaborn-v0_8')
+    bin_centers = np.array(bin_centers)
     
     for config in chart_configs:
         plt.figure(figsize=(12, 6))
@@ -376,12 +411,18 @@ def generate_and_save_charts(metrics, bin_centers, instance_ids, output_dir):
         
         for instance_id in filtered_instance_ids:
             if instance_id in metrics[metric_name]:
-                values = metrics[metric_name][instance_id]
-                plt.plot(bin_centers, values, 
-                        label=f'Instance #{instance_id}', 
+                values = np.array(metrics[metric_name][instance_id], dtype=float)
+                if smooth_window > 1 and len(values) >= smooth_window:
+                    smoothed = np.convolve(values, np.ones(smooth_window)/smooth_window, mode='same')
+                    y_vals = smoothed
+                else:
+                    y_vals = values
+                
+                plt.plot(bin_centers, y_vals,
+                        label=f'Instance #{instance_id}',
                         linewidth=2,
-                        marker='o', 
-                        markersize=4,
+                        marker='o',
+                        markersize=3,
                         alpha=0.8)
         
         plt.title(config['title'], fontsize=14, fontweight='bold')
@@ -391,12 +432,15 @@ def generate_and_save_charts(metrics, bin_centers, instance_ids, output_dir):
         plt.legend(title='vLLM Instance', bbox_to_anchor=(1.05, 1), loc='upper left')
         plt.tight_layout()
         
-        # Save the figure as PNG
-        output_path = os.path.join(output_dir, config['filename'])
+        # Add instance suffix to filename
+        base = Path(config['filename']).stem
+        ext = Path(config['filename']).suffix
+        output_path = os.path.join(output_dir, f"{base}_{instance_suffix}{ext}")
+        
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close()
         
-        print(f"Saved chart: {output_path}")
+        print(f"Saved chart (smoothed with window={smooth_window}): {output_path}")
 
 def main():
     """Main function to orchestrate the analysis."""
@@ -442,7 +486,10 @@ def main():
     metrics = compute_metrics(lifecycles, bin_edges, start_time)
     
     # Generate and save charts
-    generate_and_save_charts(metrics, bin_centers, instance_ids, args.directory)
+    # Generate and save charts
+    generate_and_save_charts(
+        metrics, bin_centers, instance_ids, args.instances, args.directory, args.smooth_window
+    )
     
     print("Analysis complete! All charts have been saved.")
 

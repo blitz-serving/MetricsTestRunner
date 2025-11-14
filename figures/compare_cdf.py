@@ -21,6 +21,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+ZOOM_IN = False
+
 def load_jsonl_data(file_path: str) -> List[Dict]:
     """
     Load data from a JSONL file, filtering out records with status != '200'.
@@ -123,74 +125,56 @@ def calculate_statistics(data: np.ndarray) -> Dict[str, float]:
     }
 
 
-def plot_comparative_cdf(all_metrics: Dict[str, Dict[str, np.ndarray]], 
-                        strategy_names: List[str], 
-                        title: str, 
-                        xlabel: str, 
-                        output_files: List[str]):
-    """
-    Generate a comparative CDF plot for the given data across multiple strategies.
-    
-    Args:
-        all_metrics: Dictionary mapping strategy names to their metrics
-        strategy_names: List of strategy names
-        title: Title for the plot
-        xlabel: Label for x-axis
-        output_files: List of file paths to save the plot (one for each strategy directory)
-    """
-    plt.figure(figsize=(12, 8))
-    
-    # Plot CDF for each strategy
-    for strategy in strategy_names:
-        metrics = all_metrics[strategy]
-        sorted_data = np.sort(metrics)
-        yvals = np.arange(1, len(sorted_data) + 1) / len(sorted_data)
-        plt.plot(sorted_data, yvals, linewidth=2, label=strategy)
-    
-    plt.title(title)
-    plt.xlabel(xlabel)
-    plt.ylabel('Cumulative Probability')
-    plt.grid(True, alpha=0.3)
-    plt.legend()
-    
-    # Set x-axis limit based on maximum value across all strategies
-    max_val = max([np.max(all_metrics[strategy]) for strategy in strategy_names])
-    plt.xlim(0, max_val * 1.05)
-    
-    # Save plot to each specified output file
-    for output_file in output_files:
-        plt.savefig(output_file, dpi=300, bbox_inches='tight')
-        print(f"  Comparative CDF plot saved to {output_file}")
-    
-    plt.close()
-
 def plot_comparative_cdf_zoom_in(all_metrics: Dict[str, np.ndarray], 
-                        strategy_names: List[str], 
-                        title: str, 
-                        xlabel: str, 
-                        output_files: List[str]):
+                                strategy_names: List[str], 
+                                title: str, 
+                                xlabel: str, 
+                                output_files: List[str]):
     """
-    Generate a comparative CDF plot with:
-      - Main CDF curves
-      - Inset zooming into y ∈ [0.8, 1.0]
-      - P99 vertical lines for each strategy (same color as curve)
+    Generate a comparative CDF plot with explicit color mapping per strategy.
+    Colors are assigned based on strategy name (not list index) for robustness.
     """
     fig, ax = plt.subplots(figsize=(12, 8))
     
-    # Store color mapping for each strategy
-    strategy_colors = {}
+    # === 为每个 strategy name 分配唯一颜色（顺序固定）===
+    unique_strategies = sorted(set(strategy_names))  # 确保顺序确定（可选：也可保持原顺序但去重）
+    # 如果你希望保持输入顺序（不去重排序），可改用：
+    # unique_strategies = []
+    # for s in strategy_names:
+    #     if s not in unique_strategies:
+    #         unique_strategies.append(s)
 
-    # Plot main CDF curves and record colors
-    for strategy in strategy_names:
+    n = len(unique_strategies)
+    tab20_colors = plt.get_cmap('tab20').colors
+    tab20b_colors = plt.get_cmap('tab20b').colors
+    tab20c_colors = plt.get_cmap('tab20c').colors
+    all_tab_colors = list(tab20_colors) + list(tab20b_colors) + list(tab20c_colors)  # 60 colors
+
+    if n <= len(all_tab_colors):
+        selected_colors = all_tab_colors[:n]
+    else:
+        print(f"Warning: {n} unique strategies exceed 60. Falling back to 'hsv' colormap.")
+        cmap = plt.get_cmap('hsv')
+        selected_colors = [cmap(i / n) for i in range(n)]
+    
+    # 创建 strategy -> color 的映射字典
+    strategy_colors = {strategy: selected_colors[i] for i, strategy in enumerate(unique_strategies)}
+    
+    # Plot main CDF curves using the color map
+    for strategy in strategy_names:  # 保持调用方期望的绘制顺序（可能有重复？通常不应有）
+        if strategy not in all_metrics:
+            continue
+        color = strategy_colors[strategy]
         data = all_metrics[strategy]
         sorted_data = np.sort(data)
         yvals = np.arange(1, len(sorted_data) + 1) / len(sorted_data)
-        line, = ax.plot(sorted_data, yvals, linewidth=1.5, label=strategy)
-        strategy_colors[strategy] = line.get_color()
+        ax.plot(sorted_data, yvals, linewidth=1.5, label=strategy, color=color)
 
     # Compute and plot P99 lines
     p99_values = {}
     for strategy in strategy_names:
+        if strategy not in all_metrics:
+            continue
         data = all_metrics[strategy]
         p99 = np.percentile(data, 99)
         p99_values[strategy] = p99
@@ -201,46 +185,53 @@ def plot_comparative_cdf_zoom_in(all_metrics: Dict[str, np.ndarray],
     ax.set_xlabel(xlabel)
     ax.set_ylabel('Cumulative Probability')
     ax.grid(True, alpha=0.3)
-    ax.legend(fontsize='small')
+    
+    # Legend handling
+    if len(strategy_names) > 10:
+        ax.legend(fontsize='x-small', ncol=2 if len(strategy_names) <= 20 else 3, loc='lower right')
+    else:
+        ax.legend(fontsize='small')
 
     # Set x-axis limit
-    max_val = max([np.max(all_metrics[strategy]) for strategy in strategy_names])
+    max_val = max(np.max(all_metrics[strategy]) for strategy in strategy_names)
     ax.set_xlim(0, max_val * 1.05)
 
-    # --- Inset axes for zoom-in (y ∈ [0.8, 1.0]) ---
-    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-    axins = inset_axes(
-        ax,
-        width="100%",  
-        height="100%",  
-        bbox_to_anchor=(0.57, 0.4, 0.4, 0.3), 
-        bbox_transform=ax.transAxes,
-        loc='lower left'
-    )
+    # --- Inset zoom-in ---
+    if ZOOM_IN:
+        from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+        axins = inset_axes(
+            ax,
+            width="100%",  
+            height="100%",  
+            bbox_to_anchor=(0.57, 0.4, 0.4, 0.3), 
+            bbox_transform=ax.transAxes,
+            loc='lower left'
+        )
 
-    for strategy in strategy_names:
-        data = all_metrics[strategy]
-        sorted_data = np.sort(data)
-        yvals = np.arange(1, len(sorted_data) + 1) / len(sorted_data)
-        mask = (yvals >= 0.8) & (yvals <= 1.0)
-        if np.any(mask):
-            axins.plot(sorted_data[mask], yvals[mask], 
-                       linewidth=1.5, color=strategy_colors[strategy])
+        for strategy in strategy_names:
+            if strategy not in all_metrics:
+                continue
+            color = strategy_colors[strategy]
+            data = all_metrics[strategy]
+            sorted_data = np.sort(data)
+            yvals = np.arange(1, len(sorted_data) + 1) / len(sorted_data)
+            mask = (yvals >= 0.8) & (yvals <= 1.0)
+            if np.any(mask):
+                axins.plot(sorted_data[mask], yvals[mask], linewidth=1.5, color=color)
 
-        # Add P99 vertical line in inset if visible
-        p99 = p99_values[strategy]
-        axins.axvline(p99, color=strategy_colors[strategy], linestyle='--', linewidth=1, alpha=0.7)
+            p99 = p99_values[strategy]
+            axins.axvline(p99, color=color, linestyle='--', linewidth=1, alpha=0.7)
 
-    axins.set_ylim(0.8, 1.0)
-    axins.set_xlim(ax.get_xlim())  # Keep same x-range as main plot
-    axins.grid(True, alpha=0.3)
-    axins.set_facecolor('white')
-    axins.tick_params(labelsize=8)
-    for spine in axins.spines.values():
-        spine.set_edgecolor('gray')
-        spine.set_linewidth(0.8)
+        axins.set_ylim(0.8, 1.0)
+        axins.set_xlim(ax.get_xlim())
+        axins.grid(True, alpha=0.3)
+        axins.set_facecolor('white')
+        axins.tick_params(labelsize=8)
+        for spine in axins.spines.values():
+            spine.set_edgecolor('gray')
+            spine.set_linewidth(0.8)
 
-    # Save plot
+    # Save
     for output_file in output_files:
         fig.savefig(output_file, dpi=300, bbox_inches='tight')
         print(f"  Comparative CDF plot with P99 lines saved to {output_file}")
@@ -392,7 +383,59 @@ def main():
                     file.write(f"    P50: {stats['p50']:.2f}\n")
                     file.write(f"    P95: {stats['p95']:.2f}\n")
                     file.write(f"    P99: {stats['p99']:.2f}\n")
-                    
+    
+    # ==============================
+    # Calculate TTFT, TPOT, Total Time  Top3 and print
+    # ==============================
+    metrics_to_rank = ['ttft', 'tpot', 'total_time']
+    ranking_results = {}
+
+    for metric in metrics_to_rank:
+        strategy_stats = []
+        for strategy in strategy_names:
+            data = all_metrics[strategy][metric]
+            mean_val = np.mean(data)
+            p99_val = np.percentile(data, 99)
+            strategy_stats.append((strategy, mean_val, p99_val))
+        
+        # Sort by mean (ascending: lower is better)
+        strategy_stats.sort(key=lambda x: x[1])
+        top3_mean = strategy_stats[:3]
+
+        # Sort by p99 (ascending)
+        strategy_stats_p99 = sorted(strategy_stats, key=lambda x: x[2])
+        top3_p99 = strategy_stats_p99[:3]
+
+        ranking_results[metric] = {
+            'by_mean': top3_mean,
+            'by_p99': top3_p99
+        }
+
+    # Output to console and top3.log in each directory
+    console_output = []
+    console_output.append("\n=== Top-3 Strategies (Lower is Better) ===")
+    for metric in metrics_to_rank:
+        display_name = metric.replace('_', ' ').upper()
+        console_output.append(f"\nTop-3 for {display_name} (by Mean):")
+        for i, (name, mean_val, _) in enumerate(ranking_results[metric]['by_mean'], 1):
+            console_output.append(f"  {i}. {name}: Mean = {mean_val:.2f}")
+
+        console_output.append(f"\nTop-3 for {display_name} (by P99):")
+        for i, (name, _, p99_val) in enumerate(ranking_results[metric]['by_p99'], 1):
+            console_output.append(f"  {i}. {name}: P99 = {p99_val:.2f}")
+
+    # Print to console
+    for line in console_output:
+        print(line)
+
+    # Write to top3.log in each directory
+    for dir_path in args.dirs:
+        top3_log_path = os.path.join(dir_path, 'top3.log')
+        with open(top3_log_path, 'w') as f:
+            for line in console_output:
+                f.write(line + '\n')
+        print(f"  Top-3 ranking saved to {top3_log_path}")
+
     # Define metric information for plotting
     metric_info = {
         'ttft': {'title': 'Comparative CDF of Time To First Token (TTFT)', 'xlabel': 'TTFT (ms)'},

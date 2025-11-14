@@ -40,7 +40,7 @@ STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node2/lmmetric-logs"
 # Directory containing dataset files for client requests
 DATASET_DIR="/mnt/debugger/hjb/node1/AzurePublicDataset/data"
 
-REMOTE_IPS="172.27.18.133"
+REMOTE_IPS="172.27.18.231"
 SSH_PORT=10022
 
 # Evaluation duration in seconds

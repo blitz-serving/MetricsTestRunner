@@ -30,7 +30,7 @@ SSH_PORT=10022
 # Noted that bound-mosthit-q can only run 1024 now.. "least-wait-token-q" "bounded-most-hit-q"
 #POLICIES=("round-robin-q" "random-q" "bailian-impl-00" "bailian-impl-01" "bailian-impl-02" "bailian-impl-03" "bailian-impl-04" "bailian-impl-05" "bailian-impl-06" "bailian-impl-07" "bailian-impl-08" "bailian-impl-09" "bailian-impl-10" "least-wait-token-q" "join-shortest-q-weight")
 #POLICIES=("round-robin-q" "dynamo-deterministic" "least-wait-token-random" "least-wait-token-q" "least-wait-token-bs" "bailian-impl-06" "join-shortest-q-weight" "join-shortest-q-tuple")
-POLICIES=("least-wait-token-bs")
+POLICIES=("round-robin-q")
 
 # Base paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -77,7 +77,7 @@ echo "Phase 2: Running experiments for each batch size, scaling factor, and poli
 
 for bs in ${BATCH_SIZES[@]}; do
     TAG="batch${bs}_u0.9_dynamo_bailian"
-    BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}.toml"
+    BACKEND_CFG="$CONFIG_DIR/launch_vllm_2p6d_1node_b${bs}.toml"
     
     for sf in ${SCALING_FACTORS[@]}; do
         echo "Processing batch size: $bs, scaling factor: $sf"

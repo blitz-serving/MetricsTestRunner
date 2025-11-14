@@ -44,7 +44,7 @@ STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node2/lmmetric-logs"
 # Directory containing dataset files for client requests
 DATASET_DIR="/mnt/debugger/hjb/node1/qwen-bailian-usagetraces-anon"
 
-REMOTE_IPS="172.27.18.133"
+REMOTE_IPS="172.27.21.64"
 SSH_PORT=10022
 
 # Evaluation duration in seconds
@@ -182,7 +182,7 @@ build_project_components() {
     # Build router_v2 with specified features
     if [ "$VERBOSE" = true ]; then
         cargo build -p router_v2  --features "$features"
-        cargo build -p router_v2  --relase --features  "$features"
+        cargo build -p router_v2  --release --features  "$features"
     else
         cargo build -p router_v2  --features "$features" --quiet
         cargo build -p router_v2  --release --features "$features" --quiet
@@ -434,6 +434,8 @@ post_process_results() {
 
     echo "Generating figs based statistics \\n"
     "$venv_path/bin/python" "../../figures/analyze_statistics_smooth.py" "$output_dir/"
+
+    "$venv_path/bin/python" "../../figures/plot_interference.py" "$output_dir/" --smooth-window 15
 }
 
 # Cleanup processes after experiment
@@ -541,7 +543,7 @@ CONFIG3="$3"
 POLICY="$4"
 
 case "$POLICY" in
-    round-robin-q|join-shortest-q|bounded-most-hit-q|least-wait-token-q|bailian-impl-q|join-shortest-q-weight|join-shortest-q-tuple|random-q|bailian-impl-kv|bailian-impl-rqs|bailian-impl-tks|bailian-impl-00|bailian-impl-01|bailian-impl-02|bailian-impl-03|bailian-impl-04|bailian-impl-05|bailian-impl-06|bailian-impl-07|bailian-impl-08|bailian-impl-09|bailian-impl-10)
+    round-robin-q|join-shortest-q|bounded-most-hit-q|least-wait-token-q|bailian-impl-q|join-shortest-q-weight|join-shortest-q-tuple|random-q|bailian-impl-kv|bailian-impl-rqs|bailian-impl-tks|bailian-impl-00|bailian-impl-01|bailian-impl-02|bailian-impl-03|bailian-impl-04|bailian-impl-05|bailian-impl-06|bailian-impl-07|bailian-impl-08|bailian-impl-09|bailian-impl-10|least-wait-token-random|least-wait-token-bs|dynamo-deterministic)
         # Valid policy, do nothing
         ;;
     *)

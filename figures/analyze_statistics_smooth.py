@@ -167,11 +167,14 @@ def main():
         print("Error: No logs with valid 'id' found.")
         return
 
+    # Generate instance suffix for filenames
+    instance_suffix = '_'.join(map(str, sorted(args.instances)))
+
     plot_configs = [
-        ('all_tokens', 'All Tokens', 'All Tokens Over Time', 'all_tokens_timeline_smooth.png'),
-        ('bs', 'Batch Size (bs)', 'Batch Size Over Time', 'batch_size_timeline_smooth.png'),
-        ('prefill_tokens', 'Prefill Tokens', 'Prefill Tokens Over Time', 'prefill_tokens_timeline_smooth.png'),
-        ('tps', 'Chunked Prefill Number Per Second (TPS)', 'Chunked Prefill Number Per Second (TPS) Over Time', 'tps_timeline_smooth.png'),
+        ('all_tokens', 'All Tokens', 'All Tokens Over Time', f'all_tokens_timeline_smooth{args.smooth_window}_{instance_suffix}.png'),
+        ('bs', 'Batch Size (bs)', 'Batch Size Over Time', f'batch_size_timeline_smooth{args.smooth_window}_{instance_suffix}.png'),
+        ('prefill_tokens', 'Prefill Tokens', 'Prefill Tokens Over Time', f'prefill_tokens_timeline_smooth{args.smooth_window}_{instance_suffix}.png'),
+        ('tps', 'Chunked Prefill Number Per Second (TPS)', 'Chunked Prefill Number Per Second (TPS) Over Time', f'tps_timeline_smooth{args.smooth_window}_{instance_suffix}.png'),
     ]
 
     for metric_key, ylabel, title, filename in plot_configs:
