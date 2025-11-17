@@ -18,7 +18,7 @@
 # -----------------------------------------------------------------------------
 
 # Model path - directory containing the LLM model files
-MODEL_PATH='/nvme/models/Qwen2.5-7B-Instruct'
+MODEL_PATH='/nvme/models/Meta-Llama-3-8B-Instruct'
 
 # Python virtual environment path with vLLM installed
 VENV_PATH='/nvme/zkx/modified-vllm/myenv'
@@ -36,7 +36,7 @@ OUTPUT_BASE="/nvme/lmetric/logs/lmmetric-logs"
 DATASET_DIR="/nvme/lmetric/datasets"
 
 # Evaluation duration in seconds
-TIME_IN_SEC=1200
+TIME_IN_SEC=240
 
 # Session name for tmux
 SESSION_NAME="azure"

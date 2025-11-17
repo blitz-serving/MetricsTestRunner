@@ -1,0 +1,17 @@
+{
+  "python-envs.defaultEnvManager": "ms-python.python:conda",
+  "python-envs.defaultPackageManager": "ms-python.python:conda",
+  "python-envs.pythonProjects": [],
+  // 禁用终端 GPU 探测
+  "terminal.integrated.detectGpu": false,
+  // 禁用 VS Code 自身的 GPU 探测
+  "remote.autoDetectGpu": false,
+  // 禁用 AI 相关 GPU 探测（某些 Insiders 版本支持）
+  "dev.containers.detectGpu": false,
+  // 可选：强制 VS Code 使用软件渲染
+  "window.titleBarStyle": "custom",
+  "window.nativeTabs": false,
+  "window.autoDetectColorScheme": false,
+  "python.terminal.activateEnvInCurrentTerminal": false,
+  "python.terminal.activateEnvironment": false
+}

@@ -26,7 +26,7 @@ extra_args = [
     "--replica_config_device",
     "h20",
     "--replica_config_model_name",
-    "meta-llama/Meta-Llama-3-8B",
+    "Qwen/Qwen2.5-7B-Instruct",
     "--cluster_config_num_replicas",
     "1",
     "--replica_config_tensor_parallel_size",

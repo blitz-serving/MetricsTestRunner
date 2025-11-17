@@ -56,10 +56,10 @@ config.channel_capacity = "${channel_capacity}"
 config.endpoint = "http://localhost:58009/generate"
 config.protocol = "st"
 config.api = "tgi"
-config.scale_factor = 4
+config.scale_factor = 1.5
 config.dataset_type = "bailian"
 config.dataset_path = "${dataset_dir}/${code_trace_name}"
-config.time_in_secs = 120
+config.time_in_secs = 1200
 config.truncate = 16000
 config.output_path = "${output_dir}/client_code_1.jsonl"
 

@@ -11,8 +11,8 @@ CLIENT_CFGS=(
 # POLICIES=("bailian-impl-q" "round-robin-q")
 POLICIES=("round-robin-q")
 
-WORK_DIR="/nvme/zkx/blitz-infer-pack"
-VENV_PATH="/nvme/zkx/modified-vllm/myenv/bin/"
+# WORK_DIR="/nvme/zkx/blitz-infer-pack"
+# VENV_PATH="/nvme/zkx/modified-vllm/myenv/bin/"
 
 # ./scripts/single_node/ipads_h20.sh \
 #     $BACKEND_CFG \
@@ -33,11 +33,24 @@ VENV_PATH="/nvme/zkx/modified-vllm/myenv/bin/"
 #     done
 # done
 
-./scripts/single_node/ipads_h20_llama.sh \
-    "/nvme/zkx/MetricsTestRunner/config/ipads-h20-1/dense_6simulator.toml" \
-    $ROUTER_CFG \
-    "/nvme/zkx/MetricsTestRunner/config/ipads-h20-1/new_clients_azure4_2.toml" \
+# ./scripts/single_node/ipads_h20_llama.sh \
+#     "/nvme/zkx/MetricsTestRunner/config/ipads-h20-1/dense_6simulator.toml" \
+#     $ROUTER_CFG \
+#     "/nvme/zkx/MetricsTestRunner/config/ipads-h20-1/new_clients_azure4_2.toml" \
+#     "round-robin-q"
+
+./scripts/single_node/ipads_h20.sh \
+    "/nvme/zkx/MetricsTestRunner/config/ipads-h20-1/launch_vllm_dp4_flashinfer.toml" \
+    "/nvme/zkx/MetricsTestRunner/config/ipads-h20-1/vllm_router_new.toml" \
+    "/nvme/zkx/MetricsTestRunner/config/ipads-h20-1/new_clients_single_request.toml" \
+    "join-shortest-q-ttft" # "round-robin-q"
+
+./scripts/single_node/ipads_llama.sh \
+    "/nvme/zkx/MetricsTestRunner/config/ipads-h20-1/launch_vllm_1.toml" \
+    "/nvme/zkx/MetricsTestRunner/config/ipads-h20-1/vllm_router_new.toml" \
+    "/nvme/zkx/MetricsTestRunner/config/ipads-h20-1/new_clients_single_request.toml" \
     "round-robin-q"
+    
 
 # ./scripts/single_node/ipads_h20_llama.sh \
 #     "/nvme/zkx/MetricsTestRunner/config/ipads-h20-1/launch_vllm_dp8.toml" \
