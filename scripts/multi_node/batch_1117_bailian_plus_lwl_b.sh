@@ -14,13 +14,13 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(5.0)
+SCALING_FACTORS=(6.0)
 
 # Define batch sizes to test
 BATCH_SIZES=(1024)
 
 REMOTE_IPS="172.27.21.64"
-USE_REMOTE=False # True
+USE_REMOTE=True # True
 
 SSH_PORT=10022
 
@@ -33,7 +33,8 @@ SSH_PORT=10022
 #POLICIES=("round-robin-q" "random-q" "bailian-impl-00" "bailian-impl-01" "bailian-impl-02" "bailian-impl-03" "bailian-impl-04" "bailian-impl-05" "bailian-impl-06" "bailian-impl-07" "bailian-impl-08" "bailian-impl-09" "bailian-impl-10" "least-wait-token-q" "join-shortest-q-weight")
 #POLICIES=("round-robin-q" "dynamo-deterministic" "least-wait-token-random" "least-wait-token-q" "least-wait-token-bs" "bailian-impl-06" "join-shortest-q-weight" "join-shortest-q-tuple")
 #POLICIES=("kvhit-tpot")
-POLICIES=("dynamo-deterministic" "least-wait-token-random" "bailian-impl-lwl-00" "bailian-impl-lwl-01" "bailian-impl-lwl-02" "bailian-impl-lwl-03" "bailian-impl-lwl-04" "bailian-impl-lwl-05" "bailian-impl-lwl-06" "bailian-impl-lwl-07" "bailian-impl-lwl-08" "bailian-impl-lwl-09" "bailian-impl-lwl-10")
+POLICIES=("dynamo-deterministic" "least-wait-token-random" "least-wait-token-bs" "bailian-impl-lwl-00" "bailian-impl-lwl-01" "bailian-impl-lwl-02" "bailian-impl-lwl-03" "bailian-impl-lwl-04" "bailian-impl-lwl-05" "bailian-impl-lwl-06" "bailian-impl-lwl-07" "bailian-impl-lwl-08" "bailian-impl-lwl-09" "bailian-impl-lwl-10")
+#POLICIES=("bailian-impl-lwl-00" "least-wait-token-bs")
 
 # Base paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -46,8 +47,8 @@ STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node2/lmmetric-logs"
 
 # Configuration files
 ROUTER_CFG="$CONFIG_DIR/vllm_router.toml"
-CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients.toml"
-#CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb.toml" # TraceB
+#CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients.toml"
+CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb.toml" # TraceB
 # -----------------------------------------------------------------------------
 # Phase 1: Template Generation
 # -----------------------------------------------------------------------------
@@ -79,7 +80,7 @@ echo "Template generation completed successfully."
 echo "Phase 2: Running experiments for each batch size, scaling factor, and policy..."
 
 for bs in ${BATCH_SIZES[@]}; do
-    TAG="batch${bs}_u0.9_kvhit_tpot"
+    TAG="batch${bs}_u0.9_bailian_hybrid_lwl_traceB"
     
     if [[ "$USE_REMOTE" == "True" ]]; then
         BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}.toml"
@@ -202,7 +203,7 @@ echo "All experiments completed."
 echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
-    TAG="batch${bs}_u0.9_kvhit_tpot"
+    TAG="batch${bs}_u0.9_bailian_hybrid_lwl_traceB"
     
     for sf in ${SCALING_FACTORS[@]}; do
         echo "Generating plots for batch size: $bs, scaling factor: $sf"

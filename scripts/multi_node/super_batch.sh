@@ -1,10 +1,7 @@
 #!/bin/bash
 
-./batch_ugly.sh
+./batch_1117_bailian_plus_lwl.sh
 
-./batch_ugly_b.sh
+./batch_1117_bailian_plus_lwl_b.sh
 
-#./batch_nnn.sh
-
-#./batch_nnn2.sh
 

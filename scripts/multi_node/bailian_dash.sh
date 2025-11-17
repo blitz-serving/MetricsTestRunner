@@ -45,6 +45,7 @@ STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node2/lmmetric-logs"
 DATASET_DIR="/mnt/debugger/hjb/node1/qwen-bailian-usagetraces-anon"
 
 REMOTE_IPS="172.27.21.64"
+USE_REMOTE=True # True
 SSH_PORT=10022
 
 # Evaluation duration in seconds
@@ -216,7 +217,8 @@ setup_output_directory() {
     local config3=$4
     local features=$5
     local policy=$6
-    
+    local queue="$7/router_v2/src/queue.rs"
+
     # Create output directory (policy suffix already handled in main logic)
     echo "Creating output directory: $output_dir"
     mkdir -p "$output_dir"
@@ -225,6 +227,7 @@ setup_output_directory() {
     cp "$config1" "$output_dir/backend.toml"
     cp "$config2" "$output_dir/router.toml"
     cp "$config3" "$output_dir/client.toml"
+    cp "$queue" "$output_dir/queue.rs"
     
     # Save features string to commands.txt
     echo "$features" > "$output_dir/commands.txt"
@@ -385,10 +388,13 @@ launch_experiment_session() {
         fi
         # Wait for remote vLLM startup instead of sleeping
         
-        if ! wait_for_remote_vllm_startup; then
-            echo "FATAL: Remote vLLM failed to start in time. Aborting experiment." >&2
-            cleanup_processes
-            exit 1
+        # ONLY wait for REMOTE if USE_REMOTE is True
+        if [[ "$USE_REMOTE" == "True" ]]; then
+            if ! wait_for_remote_vllm_startup; then
+                echo "FATAL: Remote vLLM failed to start in time. Aborting experiment." >&2
+                cleanup_processes
+                exit 1
+            fi
         fi
     fi
     
@@ -447,8 +453,8 @@ cleanup_processes() {
     kill_processes_by_pattern "smart_runner.py" "smart runner"
     kill_processes_by_pattern "$WORK_PATH/target/release/client" "previous client"
 
-    # Clean up remote processes if remote IPs are provided
-    if [ -n "$REMOTE_IPS" ] && [ -n "$REMOTE_VENV_PATH" ]; then
+    # Clean up remote processes ONLY if USE_REMOTE is True
+    if [[ "$USE_REMOTE" == "True" ]] && [ -n "$REMOTE_IPS" ] && [ -n "$REMOTE_VENV_PATH" ]; then
         kill_remote_processes_by_pattern "$REMOTE_VENV_PATH/bin/vllm" "remote vLLM" "$REMOTE_IPS" "$REMOTE_VENV_PATH"
     fi
     
@@ -542,15 +548,16 @@ CONFIG2="$2"
 CONFIG3="$3"
 POLICY="$4"
 
-case "$POLICY" in
-    round-robin-q|join-shortest-q|bounded-most-hit-q|least-wait-token-q|bailian-impl-q|join-shortest-q-weight|join-shortest-q-tuple|random-q|bailian-impl-kv|bailian-impl-rqs|bailian-impl-tks|bailian-impl-00|bailian-impl-01|bailian-impl-02|bailian-impl-03|bailian-impl-04|bailian-impl-05|bailian-impl-06|bailian-impl-07|bailian-impl-08|bailian-impl-09|bailian-impl-10|least-wait-token-random|least-wait-token-bs|dynamo-deterministic)
-        # Valid policy, do nothing
-        ;;
-    *)
-        echo "Error: policy must be legal, got: '$POLICY'" >&2
-        exit 1
-        ;;
-esac
+# too many polices now...
+# case "$POLICY" in
+#     round-robin-q|join-shortest-q|bounded-most-hit-q|least-wait-token-q|bailian-impl-q|join-shortest-q-weight|join-shortest-q-tuple|random-q|bailian-impl-kv|bailian-impl-rqs|bailian-impl-tks|bailian-impl-00|bailian-impl-01|bailian-impl-02|bailian-impl-03|bailian-impl-04|bailian-impl-05|bailian-impl-06|bailian-impl-07|bailian-impl-08|bailian-impl-09|bailian-impl-10|least-wait-token-random|least-wait-token-bs|dynamo-deterministic|kvhit-tpot)
+#         # Valid policy, do nothing
+#         ;;
+#     *)
+#         echo "Error: policy must be legal, got: '$POLICY'" >&2
+#         exit 1
+#         ;;
+# esac
 
 # Validate that configuration files exist
 validate_file_exists "$CONFIG1" "Backend configuration"
@@ -591,14 +598,16 @@ if [ "$USER_SPECIFIED_REMOTE_OUTPUT_DIR" = false ]; then
     REMOTE_OUTPUT_DIR="${REMOTE_OUTPUT_DIR}_${POLICY}"
 fi
 
-setup_output_directory "$OUTPUT_DIR" "$CONFIG1" "$CONFIG2" "$CONFIG3" "$FEATURES" "$POLICY"
+setup_output_directory "$OUTPUT_DIR" "$CONFIG1" "$CONFIG2" "$CONFIG3" "$FEATURES" "$POLICY" "$WORK_DIR"
 
 # Kill any previous processes
 echo "Cleaning up previous processes..."
 kill_processes_by_pattern "$VENV_PATH/bin/vllm" "previous vLLM"
 kill_processes_by_pattern "router_v2" "previous router"
 kill_processes_by_pattern "$WORK_PATH/target/release/client" "previous client"
-kill_remote_processes_by_pattern "$REMOTE_VENV_PATH/bin/vllm" "remote vLLM" "$REMOTE_IPS" "$REMOTE_VENV_PATH"
+if [[ "$USE_REMOTE" == "True" ]]; then
+    kill_remote_processes_by_pattern "$REMOTE_VENV_PATH/bin/vllm" "remote vLLM" "$REMOTE_IPS" "$REMOTE_VENV_PATH"
+fi
 
 sleep 10
 
