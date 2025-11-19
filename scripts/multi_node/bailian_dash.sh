@@ -26,6 +26,8 @@ MODEL_PATH='/home/admin/resource/model/464482ce.Qwen2.5-7B-Instruct/1.0/'
 REMOTE_MODEL_PATH='/home/admin/resource/model/464482ce.Qwen2.5-7B-Instruct/1.0/'
 
 # Python virtual environment path with vLLM installed
+# VENV_PATH='/mnt/debugger/hjb/node1/yaullm/.venvflashinfer'
+# REMOTE_VENV_PATH='/mnt/debugger/hjb/node2/yaullm/.venvflashinfer'
 VENV_PATH='/mnt/debugger/hjb/node1/yaullm/.venv'
 REMOTE_VENV_PATH='/mnt/debugger/hjb/node2/yaullm/.venv'
 
@@ -237,7 +239,7 @@ setup_output_directory() {
 
 wait_for_vllm_startup() {
     local remote_dir="$OUTPUT_DIR"
-    local max_wait_sec=240 # 4 minutes
+    local max_wait_sec=240 # 4 minutes + 1min for load flashinfer
     local elapsed=0
     local check_interval=5
 
