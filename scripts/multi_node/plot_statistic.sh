@@ -5,8 +5,9 @@ qps_list=("5.0")
 bs_list=("1024")
 
 # 遍历所有组合
-for r in 1 2; do
-  tag="1119_lwl_gated_param_r$r"
+for r in 1; do
+  tag="dynamo_bailian_round2"
+  #/mnt/debugger/hjb/node1/lmmetric-logs/5.0_batch1024_u0.9_dynamo_bailian_round2
   #tag="1119_lbs_random_r$r"
   for qps in "${qps_list[@]}"; do
     for bs in "${bs_list[@]}"; do

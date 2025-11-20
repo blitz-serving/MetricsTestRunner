@@ -26,10 +26,10 @@ MODEL_PATH='/home/admin/resource/model/464482ce.Qwen2.5-7B-Instruct/1.0/'
 REMOTE_MODEL_PATH='/home/admin/resource/model/464482ce.Qwen2.5-7B-Instruct/1.0/'
 
 # Python virtual environment path with vLLM installed
-# VENV_PATH='/mnt/debugger/hjb/node1/yaullm/.venvflashinfer'
-# REMOTE_VENV_PATH='/mnt/debugger/hjb/node2/yaullm/.venvflashinfer'
-VENV_PATH='/mnt/debugger/hjb/node1/yaullm/.venv'
-REMOTE_VENV_PATH='/mnt/debugger/hjb/node2/yaullm/.venv'
+VENV_PATH='/mnt/debugger/hjb/node1/yaullm/.venvflashinfer'
+REMOTE_VENV_PATH='/mnt/debugger/hjb/node2/yaullm/.venvflashinfer'
+# VENV_PATH='/mnt/debugger/hjb/node1/yaullm/.venv'
+# REMOTE_VENV_PATH='/mnt/debugger/hjb/node2/yaullm/.venv'
 
 # Project directory containing the blitz-infer-pack codebase
 WORK_DIR='/mnt/debugger/hjb/node1/blitz-infer-pack'

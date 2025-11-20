@@ -81,7 +81,7 @@ echo "Template generation completed successfully."
 echo "Phase 2: Running experiments for each batch size, scaling factor, and policy..."
 
 for bs in ${BATCH_SIZES[@]}; do
-    TAG="batch${bs}_u0.9_flashinfer0.31_try"
+    TAG="batch${bs}_u0.9_flashinfer0.52_try"
     
     if [[ "$USE_REMOTE" == "True" ]]; then
         BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_flashinfer.toml"
@@ -210,7 +210,7 @@ echo "All experiments completed."
 echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
-    TAG="batch${bs}_u0.9_flashinfer0.31_try"
+    TAG="batch${bs}_u0.9_flashinfer0.52_try"
     
     for sf in ${SCALING_FACTORS[@]}; do
         echo "Generating plots for batch size: $bs, scaling factor: $sf"

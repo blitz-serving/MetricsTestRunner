@@ -3,7 +3,7 @@
 # 定义参数
 qps_list=("5.0")
 bs_list=("1024")
-tag="1119_lwl_gated_random_r1"
+tag="dynamo_bailian_round2"
 
 # 遍历所有组合
 for qps in "${qps_list[@]}"; do
