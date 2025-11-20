@@ -427,6 +427,7 @@ post_process_results() {
     
     echo "Generating overall figures..."
     "$venv_path/bin/python" "../../figures/analyze_load_with_time.py" "$output_dir/" 
+    "$venv_path/bin/python" "../../figures/analyze_load_with_time.py" "$output_dir/" --smooth-window 5 --instances 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
 
     echo "Generating send gap fig \\n"
     "$venv_path/bin/python" "../../figures/draw_send_gap.py" "$output_dir/" --time-window=2.0
@@ -442,6 +443,7 @@ post_process_results() {
 
     echo "Generating figs based statistics \\n"
     "$venv_path/bin/python" "../../figures/analyze_statistics_smooth.py" "$output_dir/"
+    "$venv_path/bin/python" "../../figures/analyze_statistics_smooth.py" "$output_dir/" --smooth-window 5 --instances 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
 
     "$venv_path/bin/python" "../../figures/plot_interference.py" "$output_dir/" --smooth-window 15
 }

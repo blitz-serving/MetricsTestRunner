@@ -3,11 +3,11 @@
 # 定义参数
 qps_list=("5.0")
 bs_list=("1024")
-tag="1118_lwl_bs_tuple_r3"
 
 # 遍历所有组合
-for r in 1 2 3; do
-  tag="1118_lwl_bs_tuple_r$r"
+for r in 1 2; do
+  tag="1119_lwl_gated_param_r$r"
+  #tag="1119_lbs_random_r$r"
   for qps in "${qps_list[@]}"; do
     for bs in "${bs_list[@]}"; do
       dirname="${qps}_batch${bs}_u0.9_${tag}"

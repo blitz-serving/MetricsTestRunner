@@ -35,7 +35,7 @@ SSH_PORT=10022
 #POLICIES=("kvhit-tpot")
 #POLICIES=("dynamo-deterministic" "least-wait-token-random" "least-wait-token-bs" "bailian-impl-lwl-00" "bailian-impl-lwl-01" "bailian-impl-lwl-02" "bailian-impl-lwl-03" "bailian-impl-lwl-04" "bailian-impl-lwl-05" "bailian-impl-lwl-06" "bailian-impl-lwl-07" "bailian-impl-lwl-08" "bailian-impl-lwl-09" "bailian-impl-lwl-10")
 #POLICIES=("bailian-impl-06" "dynamo-deterministic" "least-wait-token-bs")
-POLICIES=("least-wait-token-gated-bs")
+POLICIES=("bailian-impl-06" "dynamo-deterministic" "least-wait-token-gated-bs-00" "least-wait-token-gated-bs-01" "least-wait-token-gated-bs-02" "least-wait-token-gated-bs-03" "least-wait-token-gated-bs-04" "least-wait-token-gated-bs-05" "least-wait-token-gated-bs-06" "least-wait-token-gated-bs-07" "least-wait-token-gated-bs-08" "least-wait-token-gated-bs-09" "least-wait-token-gated-bs-10")
 
 # Base paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -81,8 +81,8 @@ echo "Template generation completed successfully."
 echo "Phase 2: Running experiments for each batch size, scaling factor, policy, and run ID..."
 
 for bs in ${BATCH_SIZES[@]}; do
-    for run_id in {4..4}; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_1119_lwl_gated_random_r${run_id}"
+    for run_id in {1..2}; do  # Run 3 times: r1, r2, r3
+        TAG="batch${bs}_u0.9_1119_lwl_gated_param_r${run_id}"
         
         if [[ "$USE_REMOTE" == "True" ]]; then
             BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}.toml"
@@ -180,8 +180,8 @@ echo "All experiments completed."
 echo "Phase 3: Generating plots for each batch size, scaling factor, and run ID..."
 
 for bs in ${BATCH_SIZES[@]}; do
-    for run_id in {4..4}; do
-        TAG="batch${bs}_u0.9_1119_lwl_gated_random_r${run_id}"
+    for run_id in {1..2}; do
+        TAG="batch${bs}_u0.9_1119_lwl_gated_param_r${run_id}"
         
         for sf in ${SCALING_FACTORS[@]}; do
             echo "Generating plots for batch size: $bs, scaling factor: $sf, run: r${run_id}"

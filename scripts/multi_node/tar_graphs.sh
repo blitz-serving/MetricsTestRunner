@@ -3,7 +3,7 @@
 # 定义参数
 qps_list=("5.0")
 bs_list=("1024")
-tag="1118_lwl_bs_linear"
+tag="1119_lwl_gated_random_r1"
 
 # 遍历所有组合
 for qps in "${qps_list[@]}"; do
@@ -32,6 +32,12 @@ for qps in "${qps_list[@]}"; do
       find "$sub_dir" -maxdepth 1 -name "*.png" -printf "$sub_name/%P\n" >> "$list_file"
       if [ -f "$sub_dir/client.jsonl" ]; then
         echo "$sub_name/client.jsonl" >> "$list_file"
+      fi
+      if [ -f "$sub_dir/statistic.log" ]; then
+        echo "$sub_name/statistic.log" >> "$list_file"
+      fi
+      if [ -f "$sub_dir/top3.log" ]; then
+        echo "$sub_name/top3.log" >> "$list_file"
       fi
     done < <(find "$full_path" -mindepth 1 -maxdepth 1 -type d -print0)
 
