@@ -18,7 +18,7 @@
 # -----------------------------------------------------------------------------
 
 # Model path - directory containing the LLM model files
-MODEL_PATH='/nvme/models/Qwen2.5-7B-Instruct'
+MODEL_PATH='/nvme/models/Meta-Llama-3-8B-Instruct'
 
 # Python virtual environment path with vLLM installed
 VENV_PATH='/nvme/zkx/modified-vllm/myenv'
@@ -195,7 +195,7 @@ launch_experiment_session() {
         tmux new-window -t "$session_name" -n window1
         tmux send-keys -t "$session_name:window1" "$tmux_cmd && python ../../smart_runner.py --toml $config1 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
         echo "python ../../smart_runner.py --toml $config1 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir"
-        sleep 120
+        sleep 240
     fi
     
     # Launch router

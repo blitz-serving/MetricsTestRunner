@@ -10,12 +10,12 @@
 # User Configurable Parameters
 # -----------------------------------------------------------------------------
 
-MODEL_PATH='/nvme/models/Meta-Llama-3-8B-Instruct/'
+MODEL_PATH='/nvme/models/Qwen2.5-7B-Instruct'
 VENV_PATH='/nvme/zkx/modified-vllm/myenv'          # ⚠️ 不带 /bin
 WORK_DIR='/nvme/zkx/blitz-infer-pack'
 OUTPUT_BASE="/nvme/lmetric/logs/lmmetric-logs"
-DATASET_DIR="/nvme/lmetric/datasets/"
-TIME_IN_SEC=1200
+DATASET_DIR="/nvme/lmetric/datasets"
+TIME_IN_SEC=120
 SESSION_NAME="azure"
 
 # Components to run (default: all)
@@ -138,14 +138,17 @@ launch_experiment_session() {
         echo "Launching backend..."
         tmux new-window -t "$session_name" -n backend
         tmux send-keys -t "$session_name:backend" "$tmux_cmd && python ../../smart_runner.py --toml $config1 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
-        sleep 120
+        # sleep 120
     fi
 
     if [[ "$comps_lower" == *"router"* ]]; then
         echo "Launching router..."
         tmux new-window -t "$session_name" -n router
+        echo "python ../../smart_runner.py --toml $config2 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir"
+        
         tmux send-keys -t "$session_name:router" "$tmux_cmd && python ../../smart_runner.py --toml $config2 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
-        sleep 20
+        echo "python ../../smart_runner.py --toml $config2 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir"
+        # sleep 20
     fi
 
     if [[ "$comps_lower" == *"client"* ]]; then
@@ -154,8 +157,8 @@ launch_experiment_session() {
         tmux send-keys -t "$session_name:client" "$tmux_cmd && python ../../smart_runner.py --toml $config3 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
     fi
 
-    echo "Running experiment for ${time_in_sec}s..."
-    sleep $(($time_in_sec + 30))
+    # echo "Running experiment for ${time_in_sec}s..."
+    # sleep $(($time_in_sec + 30))
 }
 
 post_process_results() {
@@ -172,9 +175,9 @@ post_process_results() {
 cleanup_processes() {
     local venv_path=$1
     echo "Cleaning up processes..."
-    kill_processes_by_pattern "$venv_path/bin/vllm" "vLLM"
-    kill_processes_by_pattern "router_v2" "router"
-    kill_processes_by_pattern "smart_runner.py" "smart runner"
+    # kill_processes_by_pattern "$venv_path/bin/vllm" "vLLM"
+    # kill_processes_by_pattern "router_v2" "router"
+    # kill_processes_by_pattern "smart_runner.py" "smart runner"
     sleep 5
 }
 
@@ -229,11 +232,11 @@ CONFIG2="$2"
 CONFIG3="$3"
 POLICY="$4"
 
-VALIDATE_POLICY=("least-work-q" "round-robin-q" "join-shortest-q")
-if [[ ! " ${VALIDATE_POLICY[*]} " =~ " ${POLICY} " ]]; then
-    echo "Error: policy must be one of: ${VALIDATE_POLICY[*]}, got: '$POLICY'"
-    exit 1
-fi
+# VALIDATE_POLICY=("least-work-q" "round-robin-q" "join-shortest-q")
+# if [[ ! " ${VALIDATE_POLICY[*]} " =~ " ${POLICY} " ]]; then
+#     echo "Error: policy must be one of: ${VALIDATE_POLICY[*]}, got: '$POLICY'"
+#     exit 1
+# fi
 
 validate_file_exists "$CONFIG1" "Backend configuration"
 validate_file_exists "$CONFIG2" "Router configuration"
@@ -251,16 +254,16 @@ OUTPUT_DIR="${OUTPUT_DIR}_${POLICY}"
 setup_output_directory "$OUTPUT_DIR" "$CONFIG1" "$CONFIG2" "$CONFIG3" "$FEATURES" "$POLICY"
 
 echo "Cleaning up previous processes..."
-kill_processes_by_pattern "$VENV_PATH/bin/vllm" "previous vLLM"
-kill_processes_by_pattern "router_v2" "previous router"
-kill_processes_by_pattern "$WORK_DIR/target/release/client" "previous client"
+# kill_processes_by_pattern "$VENV_PATH/bin/vllm" "previous vLLM"
+# kill_processes_by_pattern "router_v2" "previous router"
+# kill_processes_by_pattern "$WORK_DIR/target/release/client" "previous client"
 sleep 5
-cleanup_tmux_session "$SESSION_NAME"
+# cleanup_tmux_session "$SESSION_NAME"
 
 launch_experiment_session "$SESSION_NAME" "$WORK_DIR" "$VENV_PATH" "$CONFIG1" "$CONFIG2" "$CONFIG3" "$OUTPUT_BASE" "$OUTPUT_DIR" "$MODEL_PATH" "$DATASET_DIR" "$TIME_IN_SEC" "$COMPONENTS"
 
 post_process_results "$OUTPUT_DIR" "$VENV_PATH"
-cleanup_processes "$VENV_PATH"
+# cleanup_processes "$VENV_PATH"
 
 echo "Experiment completed successfully!"
 echo "Results are available in: $OUTPUT_DIR"
