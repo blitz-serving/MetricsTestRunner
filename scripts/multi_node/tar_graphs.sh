@@ -3,7 +3,7 @@
 # 定义参数
 qps_list=("5.0")
 bs_list=("1024")
-tag="dynamo_bailian_round2"
+tag="1118_llumnix_linear"
 
 # 遍历所有组合
 for qps in "${qps_list[@]}"; do

@@ -4,7 +4,7 @@ generate_load_with_time.py
 
 This script analyzes router_v2.log files to generate timeline charts showing
 various metrics across different vLLM instances. It processes log entries to
-track request lifecycles and generates 5 different timeline charts.
+track request lifecycles and generates 6 timeline charts, including prefill token throughput.
 
 Usage:
     python generate_load_with_time.py <directory_path>
@@ -14,14 +14,14 @@ import argparse
 import re
 import os
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import defaultdict, namedtuple
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 
 # Constants
-TIME_BIN = 2  # time bin window, <10s will cause too much data point number;
+TIME_BIN = 0.5  # time bin window in seconds
 LOG_FILENAME = "router_v2.log"
 
 # Define data structures for better organization
@@ -30,13 +30,23 @@ PrefillDone = namedtuple('PrefillDone', ['timestamp', 'request_id', 'hit_cnt', '
 DecodeDone = namedtuple('DecodeDone', ['timestamp', 'request_id', 'instance_id'])
 RequestLifecycle = namedtuple('RequestLifecycle', ['request_id', 'instance_id', 'input_length', 'decode_length',
                                                   'route_time', 'prefill_time', 'decode_time', 'hit_cnt'])
+
 def parse_arguments():
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser(description='Generate timeline charts from router_v2.log')
     parser.add_argument('directory', type=str, help='Directory containing router_v2.log file')
     parser.add_argument('--smooth-window', type=int, default=5,
                         help='Sliding window size for smoothing time series (default: 5)')
     parser.add_argument('--instances', type=int, nargs='+', default=[0, 7, 8, 15],
                         help='List of vLLM instance IDs to plot (default: 0 7 8 15)')
+    parser.add_argument('--start-time', type=float, default=0.0,
+                        help='Start time (in seconds) for timeline display (default: 0)')
+    parser.add_argument('--end-time', type=float, default=1400.0,
+                        help='End time (in seconds) for timeline display (default: 1400)')
+    parser.add_argument('--prefill-request-ylim', type=float, default=None,
+                        help='Force y-axis limit for prefill request count chart (e.g., 50)')
+    parser.add_argument('--prefill-throughput-ylim', type=float, default=None,
+                        help='Force y-axis limit for prefill token throughput chart (e.g., 2000)')
     return parser.parse_args()
 
 def parse_timestamp(log_timestamp):
@@ -49,7 +59,6 @@ def parse_timestamp(log_timestamp):
     Returns:
         datetime: Parsed datetime object
     """
-    # Remove the 'Z' suffix and parse the timestamp
     clean_timestamp = log_timestamp.replace('Z', '')
     return datetime.fromisoformat(clean_timestamp)
 
@@ -69,19 +78,13 @@ def extract_log_data(log_file_path):
     earliest_time = None
     latest_time = None
     
-    # Enhanced regex patterns to handle the actual log format and the described format
-    # Pattern 1: Request routing with input_length and decode_length (as described in requirements)
+    # Pattern 1: Request routing with input_length and decode_length
     route_pattern = re.compile(
         r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z).*?'
         r'Request_(\d+)\s+queued\s+\d+us,\s+with\s+input\s+length\s+(\d+)\s+output\s+length\s+(\d+),\s+added\s+to\s+vLLM#(\d+)'
     )
-    
-    backup_route_pattern = re.compile(
-        r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z).*?'
-        r'Request_(\d+)\s+queued\s+\d+us,\s+with\s+input\s+length\s+(\d+)\s+output\s+length\s+(\d+),\s+added\s+to\s+vLLM#(\d+)'
-    )
 
-    # Pattern 2: Prefill done with hit_cnt (as described in requirements)
+    # Pattern 2: Prefill done with hit_cnt
     prefill_pattern = re.compile(
         r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z).*?'
         r'Vllm#(\d+)::Request_(\d+)\s+prefill\s+done\s+with\s+(\d+)\s+actual\s+hit\s+tokens!'
@@ -92,13 +95,8 @@ def extract_log_data(log_file_path):
         r'Vllm#(\d+)::Request_(\d+)\s+prefill\s+with\s+(\d+)\s+actual\s+hit\s+tokens\s+done!'
     )
 
-    # Pattern 3: Decode done (as described in requirements)
+    # Pattern 3: Decode done
     decode_pattern = re.compile(
-        r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z).*?'
-        r'Vllm#(\d+)::Request_(\d+)\s+is\s+finished\s+generating\s+(\d+)\s+tokens'
-    )
-    
-    backup_decode_pattern = re.compile(
         r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z).*?'
         r'Vllm#(\d+)::Request_(\d+)\s+is\s+finished\s+generating\s+(\d+)\s+tokens'
     )
@@ -109,74 +107,66 @@ def extract_log_data(log_file_path):
             if not line:
                 continue
             
-            # Try to match routing information (enhanced pattern first)
+            # Try to match routing information
             route_match = route_pattern.search(line)
-            
             if route_match:
-                timestamp_str, req_id, instance_id = route_match.group(1), int(route_match.group(2)), int(route_match.group(5))
+                timestamp_str, req_id, input_length, decode_length, instance_id = (
+                    route_match.group(1),
+                    int(route_match.group(2)),
+                    int(route_match.group(3)),
+                    int(route_match.group(4)),
+                    int(route_match.group(5)),
+                )
                 timestamp = parse_timestamp(timestamp_str)
-                
-                # For fallback pattern, use default values
-                input_length = int(route_match.group(3)) if len(route_match.groups()) > 3 else -1
-                decode_length = int(route_match.group(4)) if len(route_match.groups()) > 4 else -1
-                
-                if input_length != -1 and decode_length != -1:
-                    request_routes[req_id] = RequestRoute(
-                        timestamp=timestamp,
-                        request_id=req_id,
-                        input_length=input_length,
-                        decode_length=decode_length,
-                        instance_id=instance_id
-                    )
-                    
-                    # Update time bounds
-                    if earliest_time is None or timestamp < earliest_time:
-                        earliest_time = timestamp
-                    if latest_time is None or timestamp > latest_time:
-                        latest_time = timestamp
-                    continue
-                else:
-                    print(f"warning: {req_id=} {instance_id=} {input_length=} {decode_length=}")
+                request_routes[req_id] = RequestRoute(
+                    timestamp=timestamp,
+                    request_id=req_id,
+                    input_length=input_length,
+                    decode_length=decode_length,
+                    instance_id=instance_id
+                )
+                if earliest_time is None or timestamp < earliest_time:
+                    earliest_time = timestamp
+                if latest_time is None or timestamp > latest_time:
+                    latest_time = timestamp
+                continue
             
-            # Try to match prefill completion (enhanced pattern first)
+            # Try to match prefill completion
             prefill_match = prefill_pattern.search(line)
-            
             if not prefill_match:
                 prefill_match = backup_prefill_pattern.search(line)
-                
             if prefill_match:
-                timestamp_str, instance_id, req_id = prefill_match.group(1), int(prefill_match.group(2)), int(prefill_match.group(3))
+                timestamp_str, instance_id, req_id, hit_cnt = (
+                    prefill_match.group(1),
+                    int(prefill_match.group(2)),
+                    int(prefill_match.group(3)),
+                    int(prefill_match.group(4)),
+                )
                 timestamp = parse_timestamp(timestamp_str)
-                
-                # For fallback pattern, use default hit count
-                hit_cnt = int(prefill_match.group(4)) if len(prefill_match.groups()) > 3 else 0
-                
                 prefill_dones[req_id] = PrefillDone(
                     timestamp=timestamp,
                     request_id=req_id,
                     hit_cnt=hit_cnt,
                     instance_id=instance_id
                 )
-                
-                # Update time bounds
                 if latest_time is None or timestamp > latest_time:
                     latest_time = timestamp
                 continue
             
             # Try to match decode completion
             decode_match = decode_pattern.search(line)
-          
             if decode_match:
-                timestamp_str, instance_id, req_id = decode_match.group(1), int(decode_match.group(2)), int(decode_match.group(3))
+                timestamp_str, instance_id, req_id = (
+                    decode_match.group(1),
+                    int(decode_match.group(2)),
+                    int(decode_match.group(3)),
+                )
                 timestamp = parse_timestamp(timestamp_str)
-                
                 decode_dones[req_id] = DecodeDone(
                     timestamp=timestamp,
                     request_id=req_id,
                     instance_id=instance_id
                 )
-                
-                # Update time bounds
                 if latest_time is None or timestamp > latest_time:
                     latest_time = timestamp
     
@@ -262,10 +252,8 @@ def compute_metrics(lifecycles, bin_edges, start_time):
     Returns:
         dict: Metrics organized by instance and time bin
     """
-    # Get all unique instance IDs
     instance_ids = sorted(set(lifecycle.instance_id for lifecycle in lifecycles))
     
-    # Initialize metrics dictionary
     metrics = {
         'prefill_req_number': defaultdict(lambda: [0] * (len(bin_edges) - 1)),
         'decode_req_number': defaultdict(lambda: [0] * (len(bin_edges) - 1)),
@@ -275,76 +263,65 @@ def compute_metrics(lifecycles, bin_edges, start_time):
         'sum_cache_length': defaultdict(lambda: [0] * (len(bin_edges) - 1))
     }
     
-    # Process each request lifecycle
     for lifecycle in lifecycles:
         instance_id = lifecycle.instance_id
         
-        # Convert timestamps to relative seconds
         route_time_rel = (lifecycle.route_time - start_time).total_seconds()
         prefill_time_rel = (lifecycle.prefill_time - start_time).total_seconds()
         decode_time_rel = (lifecycle.decode_time - start_time).total_seconds()
         
-        # Find bins that overlap with [route_time, prefill_time] for prefill phase
+        # Prefill phase: from route_time to prefill_time
         prefill_start_bin = max(0, int(route_time_rel / TIME_BIN))
         prefill_end_bin = min(len(bin_edges) - 2, int(prefill_time_rel / TIME_BIN))
-        
         for bin_idx in range(prefill_start_bin, prefill_end_bin + 1):
             bin_start = bin_idx * TIME_BIN
             bin_end = (bin_idx + 1) * TIME_BIN
-            
-            # Check if there's overlap between the bin and the prefill phase
             if bin_end > route_time_rel and bin_start < prefill_time_rel:
                 metrics['prefill_req_number'][instance_id][bin_idx] += 1
                 metrics['total_prefill_length'][instance_id][bin_idx] += lifecycle.input_length
                 metrics['sum_input_length'][instance_id][bin_idx] += lifecycle.input_length
                 metrics['sum_cache_length'][instance_id][bin_idx] += lifecycle.hit_cnt
         
-        # Find bins that overlap with [prefill_time, decode_time] for decode phase
+        # Decode phase: from prefill_time to decode_time
         decode_start_bin = max(0, int(prefill_time_rel / TIME_BIN))
         decode_end_bin = min(len(bin_edges) - 2, int(decode_time_rel / TIME_BIN))
-        
         for bin_idx in range(decode_start_bin, decode_end_bin + 1):
             bin_start = bin_idx * TIME_BIN
             bin_end = (bin_idx + 1) * TIME_BIN
-            
-            # Check if there's overlap between the bin and the decode phase
             if bin_end > prefill_time_rel and bin_start < decode_time_rel:
                 metrics['decode_req_number'][instance_id][bin_idx] += 1
                 metrics['total_decode_length'][instance_id][bin_idx] += lifecycle.decode_length
-    
+
     # Calculate prefix cache rate
     metrics['prefix_cache_rate'] = defaultdict(lambda: [0.0] * (len(bin_edges) - 1))
     for instance_id in instance_ids:
         for bin_idx in range(len(bin_edges) - 1):
             sum_input = metrics['sum_input_length'][instance_id][bin_idx]
             sum_cache = metrics['sum_cache_length'][instance_id][bin_idx]
-            
             if sum_input > 0:
                 cache_rate = sum_cache / sum_input
                 metrics['prefix_cache_rate'][instance_id][bin_idx] = round(cache_rate, 2)
             else:
                 metrics['prefix_cache_rate'][instance_id][bin_idx] = 0.0
-    
-    # Convert defaultdicts to regular dicts for easier handling
+
+    # NEW METRIC: prefill token throughput (at prefill completion time), in tokens per bin
+    metrics['prefill_token_throughput'] = defaultdict(lambda: [0] * (len(bin_edges) - 1))
+    for lifecycle in lifecycles:
+        instance_id = lifecycle.instance_id
+        prefill_time_rel = (lifecycle.prefill_time - start_time).total_seconds()
+        bin_idx = int(prefill_time_rel / TIME_BIN)
+        if 0 <= bin_idx < len(bin_edges) - 1:
+            metrics['prefill_token_throughput'][instance_id][bin_idx] += lifecycle.input_length
+
+    # Convert defaultdicts to dicts
     for metric_name in metrics:
         metrics[metric_name] = dict(metrics[metric_name])
     
     return metrics
 
-def parse_arguments():
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description='Generate timeline charts from router_v2.log')
-    parser.add_argument('directory', type=str, help='Directory containing router_v2.log file')
-    parser.add_argument('--smooth-window', type=int, default=5,
-                        help='Sliding window size for smoothing time series (default: 5)')
-    parser.add_argument('--instances', type=int, nargs='+', default=[0, 7, 8, 15],
-                        help='List of vLLM instance IDs to plot (default: 0 7 8 15)')
-    return parser.parse_args()
-
-
-def generate_and_save_charts(metrics, bin_centers, all_instance_ids, selected_instances, output_dir, smooth_window=5):
+def generate_and_save_charts(metrics, bin_centers, all_instance_ids, selected_instances, output_dir, smooth_window=5, time_range=(0.0, 1400.0), prefill_request_ylim=None, prefill_throughput_ylim=None):
     """
-    Generate and save the 5 timeline charts with optional smoothing.
+    Generate and save the timeline charts with optional smoothing, time range clipping, and y-limits.
     
     Args:
         metrics (dict): Computed metrics
@@ -353,37 +330,56 @@ def generate_and_save_charts(metrics, bin_centers, all_instance_ids, selected_in
         selected_instances (list): User-specified instance IDs to plot
         output_dir (str): Directory to save the charts
         smooth_window (int): Size of the moving average window
+        time_range (tuple): (start_time, end_time) in seconds to clip the timeline
+        prefill_request_ylim (float or None): y-limit for prefill request chart
+        prefill_throughput_ylim (float or None): y-limit for prefill token throughput chart
     """
+    start_time_clip, end_time_clip = time_range
+    bin_centers = np.array(bin_centers)
+    
+    valid_indices = (bin_centers >= start_time_clip) & (bin_centers < end_time_clip)
+    if not np.any(valid_indices):
+        print(f"Warning: No data in time range [{start_time_clip}, {end_time_clip}). Skipping charts.")
+        return
+
+    clipped_bin_centers = bin_centers[valid_indices]
+    
     chart_configs = [
         {
             'metric_name': 'prefill_req_number',
             'title': 'Prefill Request Count Over Time',
             'ylabel': 'Number of Requests in Prefill',
-            'filename': 'prefill_req_number.png'
+            'filename': 'prefill_req_number.png',
         },
         {
             'metric_name': 'decode_req_number',
             'title': 'Decode Request Count Over Time',
             'ylabel': 'Number of Requests in Decode',
-            'filename': 'decode_req_number.png'
+            'filename': 'decode_req_number.png',
         },
         {
             'metric_name': 'total_prefill_length',
             'title': 'Total Prefill Length Over Time',
             'ylabel': 'Cumulative Input Length',
-            'filename': 'total_prefill_length.png'
+            'filename': 'total_prefill_length.png',
+        },
+        {
+            'metric_name': 'prefill_token_throughput',
+            'title': 'Prefill Token Throughput Over Time',
+            'ylabel': 'Prefill Throughput (tokens/sec)',
+            'filename': 'prefill_token_throughput.png',
         },
         {
             'metric_name': 'total_decode_length',
             'title': 'Total Decode Length Over Time',
             'ylabel': 'Cumulative Decode Length',
-            'filename': 'total_decode_length.png'
+            'filename': 'total_decode_length.png',
         },
         {
             'metric_name': 'prefix_cache_rate',
             'title': 'Prefix Cache Hit Rate Over Time',
             'ylabel': 'Cache Hit Rate',
-            'filename': 'prefix_cache_rate.png'
+            'filename': 'prefix_cache_rate.png',
         }
     ]
     
@@ -393,13 +389,9 @@ def generate_and_save_charts(metrics, bin_centers, all_instance_ids, selected_in
         return
 
     print(f"Selected instance ids = {filtered_instance_ids}")
-
-    # Generate suffix for filenames
-    instance_suffix = '_'.join(map(str, sorted(filtered_instance_ids)))
-    instance_suffix += f"_smooth{smooth_window}"
+    print(f"Clipping timeline to [{start_time_clip}, {end_time_clip}) seconds")
 
     plt.style.use('seaborn-v0_8')
-    bin_centers = np.array(bin_centers)
     
     for config in chart_configs:
         plt.figure(figsize=(12, 6))
@@ -412,13 +404,18 @@ def generate_and_save_charts(metrics, bin_centers, all_instance_ids, selected_in
         for instance_id in filtered_instance_ids:
             if instance_id in metrics[metric_name]:
                 values = np.array(metrics[metric_name][instance_id], dtype=float)
-                if smooth_window > 1 and len(values) >= smooth_window:
-                    smoothed = np.convolve(values, np.ones(smooth_window)/smooth_window, mode='same')
+                clipped_values = values[valid_indices]
+                # Convert throughput from tokens/bin to tokens/sec
+                if metric_name == 'prefill_token_throughput':
+                    clipped_values = clipped_values / TIME_BIN
+                
+                if smooth_window > 1 and len(clipped_values) >= smooth_window:
+                    smoothed = np.convolve(clipped_values, np.ones(smooth_window)/smooth_window, mode='same')
                     y_vals = smoothed
                 else:
-                    y_vals = values
+                    y_vals = clipped_values
                 
-                plt.plot(bin_centers, y_vals,
+                plt.plot(clipped_bin_centers, y_vals,
                         label=f'Instance #{instance_id}',
                         linewidth=2,
                         marker='o',
@@ -428,11 +425,24 @@ def generate_and_save_charts(metrics, bin_centers, all_instance_ids, selected_in
         plt.title(config['title'], fontsize=14, fontweight='bold')
         plt.xlabel('Time (seconds)', fontsize=12)
         plt.ylabel(config['ylabel'], fontsize=12)
+        plt.xlim(start_time_clip, min(end_time_clip, clipped_bin_centers[-1] if len(clipped_bin_centers) > 0 else end_time_clip))
         plt.grid(True, alpha=0.3)
         plt.legend(title='vLLM Instance', bbox_to_anchor=(1.05, 1), loc='upper left')
+        
+        # Apply y-limits for specific charts
+        if metric_name == 'prefill_req_number' and prefill_request_ylim is not None:
+            plt.ylim(0, prefill_request_ylim)
+        elif metric_name == 'prefill_token_throughput' and prefill_throughput_ylim is not None:
+            plt.ylim(0, prefill_throughput_ylim)
+        
         plt.tight_layout()
         
-        # Add instance suffix to filename
+        # Add suffix to filename
+        instance_suffix = '_'.join(map(str, sorted(filtered_instance_ids)))
+        instance_suffix += f"_smooth{smooth_window}"
+        if start_time_clip != 0 or end_time_clip != 1400:
+            instance_suffix += f"_t{int(start_time_clip)}-{int(end_time_clip)}"
+        
         base = Path(config['filename']).stem
         ext = Path(config['filename']).suffix
         output_path = os.path.join(output_dir, f"{base}_{instance_suffix}{ext}")
@@ -440,30 +450,25 @@ def generate_and_save_charts(metrics, bin_centers, all_instance_ids, selected_in
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close()
         
-        print(f"Saved chart (smoothed with window={smooth_window}): {output_path}")
+        print(f"Saved chart (smoothed with window={smooth_window}, time range=[{start_time_clip}, {end_time_clip})): {output_path}")
 
 def main():
     """Main function to orchestrate the analysis."""
     args = parse_arguments()
     
-    # Validate directory exists
     if not os.path.isdir(args.directory):
         raise ValueError(f"Directory not found: {args.directory}")
     
-    # Construct log file path
     log_file_path = os.path.join(args.directory, LOG_FILENAME)
     if not os.path.exists(log_file_path):
         raise FileNotFoundError(f"Log file not found: {log_file_path}")
     
     print(f"Processing log file: {log_file_path}")
     
-    # Extract log data
     request_routes, prefill_dones, decode_dones, start_time, end_time = extract_log_data(log_file_path)
     
     print(f"Found {len(request_routes)} route events, {len(prefill_dones)} prefill events, {len(decode_dones)} decode events")
     
-    print(f"{request_routes[1]} {prefill_dones[1]} {decode_dones[1]}")
-    # Build request lifecycles
     lifecycles = build_request_lifecycles(request_routes, prefill_dones, decode_dones)
     
     print(f"Built {len(lifecycles)} complete request lifecycles")
@@ -472,23 +477,22 @@ def main():
         print("No complete request lifecycles found. Cannot generate charts.")
         return
     
-    # Calculate time bins
     bin_edges, bin_centers, total_duration = calculate_time_bins(start_time, end_time)
     
     print(f"Time range: {total_duration:.2f} seconds, Number of bins: {len(bin_edges)-1}")
     
-    # Get all unique instance IDs
     instance_ids = sorted(set(lifecycle.instance_id for lifecycle in lifecycles))
     
     print(f"Found instances: {instance_ids}")
     
-    # Compute metrics
     metrics = compute_metrics(lifecycles, bin_edges, start_time)
     
-    # Generate and save charts
-    # Generate and save charts
     generate_and_save_charts(
-        metrics, bin_centers, instance_ids, args.instances, args.directory, args.smooth_window
+        metrics, bin_centers, instance_ids, args.instances, args.directory,
+        smooth_window=args.smooth_window,
+        time_range=(args.start_time, args.end_time),
+        prefill_request_ylim=args.prefill_request_ylim,
+        prefill_throughput_ylim=args.prefill_throughput_ylim
     )
     
     print("Analysis complete! All charts have been saved.")
