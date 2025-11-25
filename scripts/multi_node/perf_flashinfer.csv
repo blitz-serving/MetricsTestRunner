@@ -1,0 +1,11 @@
+Policy,TTFT,TPOT,Total,R_TTFT,R_TPOT,R_Total
+llumnix-linear-04,667.38,32.12,21248.63,1.00,1.00,1.00
+least-bs-random,517.42,27.40,18135.17,1.29,1.17,1.17
+round-robin-q,494.69,30.09,18829.83,1.35,1.07,1.13
+join-shortest-q-weight,428.84,30.78,19494.11,1.56,1.04,1.09
+join-shortest-q-tuple,360.05,29.09,17388.79,1.85,1.10,1.22
+bailian-impl-06,298.52,12.05,6477.87,2.24,2.67,3.28
+dynamo-deterministic,284.70,15.35,7888.70,2.34,2.09,2.69
+join-shortest-q-ttft,183.20,13.67,6994.84,3.64,2.35,3.04
+least-wait-token-bs,180.29,18.93,9974.23,3.70,1.70,2.13
+least-wait-token-gated-bs,155.78,10.40,5368.19,4.28,3.09,3.96
