@@ -52,7 +52,7 @@ SSH_PORT=10022
 
 # Evaluation duration in seconds
 # TODO, client need about 2min to fill the channel
-TIME_IN_SEC=$((1200 + 180))
+TIME_IN_SEC=$((600 + 180))
 
 # Session name for tmux
 SESSION_NAME="bailian"
@@ -414,6 +414,21 @@ launch_experiment_session() {
     # Wait for experiment to complete
     echo "Running experiment for ${time_in_sec}s..."
     sleep $(($time_in_sec))
+
+    client_path="$WORK_DIR/target/release/client"
+    while true; do
+        if pgrep -f "$client_path" > /dev/null; then
+            echo "Detecting unfinished clients, waiting extra times!!!"
+            for i in {1..6}; do
+                sleep 5
+                if ! pgrep -f "$client_path" > /dev/null; then
+                    break
+                fi
+            done
+        else
+            break
+        fi
+    done
 }
 
 # Merge client logs and generate figures
@@ -455,7 +470,7 @@ cleanup_processes() {
     kill_processes_by_pattern "$VENV_PATH/bin/vllm" "vLLM"
     kill_processes_by_pattern "router_v2" "router"
     kill_processes_by_pattern "smart_runner.py" "smart runner"
-    kill_processes_by_pattern "$WORK_PATH/target/release/client" "previous client"
+    kill_processes_by_pattern "$WORK_DIR/target/release/client" "previous client"
 
     # Clean up remote processes ONLY if USE_REMOTE is True
     if [[ "$USE_REMOTE" == "True" ]] && [ -n "$REMOTE_IPS" ] && [ -n "$REMOTE_VENV_PATH" ]; then
@@ -552,17 +567,6 @@ CONFIG2="$2"
 CONFIG3="$3"
 POLICY="$4"
 
-# too many polices now...
-# case "$POLICY" in
-#     round-robin-q|join-shortest-q|bounded-most-hit-q|least-wait-token-q|bailian-impl-q|join-shortest-q-weight|join-shortest-q-tuple|random-q|bailian-impl-kv|bailian-impl-rqs|bailian-impl-tks|bailian-impl-00|bailian-impl-01|bailian-impl-02|bailian-impl-03|bailian-impl-04|bailian-impl-05|bailian-impl-06|bailian-impl-07|bailian-impl-08|bailian-impl-09|bailian-impl-10|least-wait-token-random|least-wait-token-bs|dynamo-deterministic|kvhit-tpot)
-#         # Valid policy, do nothing
-#         ;;
-#     *)
-#         echo "Error: policy must be legal, got: '$POLICY'" >&2
-#         exit 1
-#         ;;
-# esac
-
 # Validate that configuration files exist
 validate_file_exists "$CONFIG1" "Backend configuration"
 validate_file_exists "$CONFIG2" "Router configuration"
@@ -608,7 +612,7 @@ setup_output_directory "$OUTPUT_DIR" "$CONFIG1" "$CONFIG2" "$CONFIG3" "$FEATURES
 echo "Cleaning up previous processes..."
 kill_processes_by_pattern "$VENV_PATH/bin/vllm" "previous vLLM"
 kill_processes_by_pattern "router_v2" "previous router"
-kill_processes_by_pattern "$WORK_PATH/target/release/client" "previous client"
+kill_processes_by_pattern "$WORK_DIR/target/release/client" "previous client"
 if [[ "$USE_REMOTE" == "True" ]]; then
     kill_remote_processes_by_pattern "$REMOTE_VENV_PATH/bin/vllm" "remote vLLM" "$REMOTE_IPS" "$REMOTE_VENV_PATH"
 fi

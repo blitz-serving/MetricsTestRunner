@@ -52,7 +52,7 @@ def load_jsonl_data(file_path: str) -> List[Dict]:
                     except json.JSONDecodeError as e:
                         print(f"Warning: Skipping invalid JSON on line {line_num}: {e}")
                         continue
-            print(f"Warning: skipped {skip_line_num=} requests (not 200 or normal timeout)")
+            print(f"Warning: skipped {skip_line_num=} requests (not 200 or normal timeout) lasting {len(data)}")
     except FileNotFoundError:
         print(f"Error: File {file_path} not found")
         sys.exit(1)
@@ -77,13 +77,16 @@ def extract_metrics(data: List[Dict]) -> Dict[str, np.ndarray]:
         'inference_time': [],
         'total_time': []
     }
-    
+    err_cnt = 0
     for item in data:
         # Extract metrics, converting strings to numbers where needed
         status = item.get("status")
         rid = str(item.get('request_id', ""))
-        metrics['rid'].append(rid)
-        
+        if rid != "":
+            metrics['rid'].append(rid)
+        else:
+            metrics['rid'].append(f"err_{err_cnt}")
+            err_cnt += 1
         if status == '200':
             ttft = float(item.get('first_token_time', 0))
             tpot = float(item.get('avg_time_between_tokens', 0))
@@ -98,6 +101,7 @@ def extract_metrics(data: List[Dict]) -> Dict[str, np.ndarray]:
             metrics['tpot'].append(-1)
             metrics['inference_time'].append(-1)
             metrics['total_time'].append(-1)
+
 
     # Convert lists to numpy arrays for easier calculations
     for key in metrics:
@@ -274,13 +278,6 @@ def main():
     # Correction function for timeout handling
     print("\nApplying timeout correction...")
     
-    # Get union of all request IDs
-    all_rids = set()
-    for strategy in strategy_names:
-        all_rids.update(all_metrics[strategy]['rid'])
-    
-    print(f"\n all requests numbers {len(all_rids)}")
-
     # Get maximum values across all policies
     max_values = {
         'ttft': 0,
@@ -299,45 +296,31 @@ def main():
     # Apply correction to each strategy
     for strategy in strategy_names:
         metrics = all_metrics[strategy]
+        all_rids = list(all_metrics[strategy]['rid'])
         corrected_metrics = {
-            'rid': list(all_rids),
+            'rid': all_rids,
             'ttft': [],
             'tpot': [],
             'inference_time': [],
             'total_time': []
         }
-        
-        # Create mapping from rid to metrics for this strategy
-        rid_to_metrics = {}
-        for i, rid in enumerate(metrics['rid']):
-            rid_to_metrics[rid] = {
-                'ttft': metrics['ttft'][i],
-                'tpot': metrics['tpot'][i],
-                'inference_time': metrics['inference_time'][i],
-                'total_time': metrics['total_time'][i]
-            }
+    
+        print(f"\n all requests numbers {len(all_rids)} for strategy {strategy}")
         
         success_rate = 0
         # Fill in corrected values
-        for rid in all_rids:
-            if rid in rid_to_metrics:
-                # Use existing value if not timeout (-1), otherwise use max value
-                ok = True
+        for id, rid in enumerate(all_rids):
+            if rid.startswith("err"): # time out
                 for metric in ['ttft', 'tpot', 'inference_time', 'total_time']:
-                    value = rid_to_metrics[rid][metric]
-                    if value == -1:
-                        ok = False
-                        corrected_metrics[metric].append(max_values[metric])
-                    else: # valid data
-                        corrected_metrics[metric].append(value)
-                if ok:
-                    success_rate += 1
-            else:
-                # Missing request ID - treat as timeout
-                for metric in ['ttft', 'tpot', 'inference_time', 'total_time']:
+                    assert all_metrics[strategy][metric][id] == -1
                     corrected_metrics[metric].append(max_values[metric])
+            else: # ok
+                success_rate += 1
+                for metric in ['ttft', 'tpot', 'inference_time', 'total_time']:
+                    assert all_metrics[strategy][metric][id] != -1
+                    corrected_metrics[metric].append(all_metrics[strategy][metric][id])
         
-        print(f"Valid data point for {strategy} is {success_rate}, Rate = {success_rate / len(all_rids)}")
+        print(f"Valid data point for {strategy} is {success_rate}, Rate = {success_rate / len(list(all_metrics[strategy]['rid']))}")
 
         # Convert lists to numpy arrays
         for key in ['ttft', 'tpot', 'inference_time', 'total_time']:

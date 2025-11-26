@@ -1,19 +1,21 @@
 #!/bin/bash
 
 # 定义参数
-qps_list=("5.0")
+qps_list=("1.0")
 bs_list=("1024")
 #tag="dynamo_bailian_round2"
 #policy="join-shortest-q-tuple"  # 可选值: "all" 或 具体策略名，如 "join-shortest-q-tuple"
 #policy="bailian-impl-06"
 #policy="least-wait-token-random"
-policy="least-wait-token-bs"
+#policy="least-wait-token-random"
+policy="least-wait-token-gated-bs"
 
 # 遍历所有组合
 for r in 1; do
   #tag="flashinfer_predictions_r$r"
   #tag="dynamo_bailian_round2"
-  tag="1118_lwl_bs_tuple_r1"
+  #tag="1118_lwl_bs_tuple_r1"
+  tag="flashinfer_1125_thinking_try_r$r"
   for qps in "${qps_list[@]}"; do
     for bs in "${bs_list[@]}"; do
       dirname="${qps}_batch${bs}_u0.9_${tag}"
@@ -41,7 +43,7 @@ for r in 1; do
 
               # python ../../figures/analyze_statistics.py "$dir"
 
-              python ../../figures/analyze_statistics_smooth.py "$dir" --smooth-window 5 --instances 8
+              #python ../../figures/analyze_statistics_smooth.py "$dir" --smooth-window 5 --instances 8
 
               # python ../../figures/analyze_statistics_smooth.py "$dir" --smooth-window 5 --instances 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
 
@@ -57,22 +59,22 @@ for r in 1; do
               #python ../../figures/analyze_overall_hit_rate.py "$dir" --smooth-window 10
 
               #python ../../figures/analyze_overall_hit_rate.py "$dir" --smooth-window 15
-              #python ../../figures/plot_interference_merged_by_time.py "$dir" --start-time 0 --end-time 1400 --instances 3 15 --smooth-window 10
+              python ../../figures/plot_interference_merged_by_time.py "$dir" --start-time 0 --end-time 1400 --instances 0 2 4 3 14 15 --smooth-window 10
               #python ../../figures/cp_cycle.py "$dir" --start-time 600 --end-time 10000 --instances 0 3 8 15 --smooth-window 5
               #python ../../figures/analyze_tpot_cluster.py "$dir" --instances 0 3 7 8 12 15
               # Plotting waiting-p-tks to see some zeros
               # python ../../figures/waiting-p-tks-timeline.py "$dir"
               # Plotting bailian hit ratio when scheduler query, show it is zero manytimes
               #python ../../figures/hit_ratio_timeline_bailian.py "$dir" --replicas 6 12 --smooth-window 50
-              dest_dir="/root/figs/$dir_name"
-              mkdir -p "$dest_dir"
+              #dest_dir="/root/figs/$dir_name"
+              #mkdir -p "$dest_dir"
 
       # 复制该目录下所有 .png 文件到目标目录
               #find "$dir" -maxdepth 1 -name "*.png" -exec cp {} "$dest_dir/" \;
               ## 打包该目录下所有 .png 文件为一个 tar 包，存放到 dest_dir/ 下
-              png_files=("$dir"/*.png)
+              #png_files=("$dir"/*.png)
               # 进入目标目录，再执行 tar
-              (cd "$dir" && tar -cf "$dest_dir/${dir_name}.tar" *.png)
+              #(cd "$dir" && tar -cf "$dest_dir/${dir_name}.tar" *.png)
               #if [ -e "${png_files[0]}" ]; then
   # 如果存在至少一个 .png 文件，则打包
               #  tar -cf "$dest_dir/${dir_name}.tar" -C "$dir" -- *.png

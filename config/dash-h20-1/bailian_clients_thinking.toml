@@ -1,7 +1,7 @@
 # ========== 1. 启动 8 个 vLLM 实例 ==========
 [runtime.raw]
 config = [
-    { app = "client_toB", background = false },
+    { app = "client_thinking", background = false },
 ]
 
 [variables]
@@ -14,7 +14,7 @@ base_vllm_port = 59180
 dataset_dir = "${dataset-dir}"
 log_dir = "${log-dir}"
 output_dir = "${output-dir}"
-toB_trace_name = "qwen_traceB_blksz_16.jsonl"
+thinking_trace_name = "anony-qwen-max-thinking-251118-14-16-blsz16.jsonl"
 tokenizer_config_path = "${model-path}/tokenizer_config.json"
 num_producer = 12
 channel_capacity = 16
@@ -43,7 +43,7 @@ extra_args = ["--replay-mode"]
 
 
 # ========== 具体客户端实例 ==========
-[app.client_toB]
+[app.client_thinking]
 inherit = "client_template"
 config.tokenizer = "${tokenizer_path}"
 config.tokenizer_config = "${tokenizer_config_path}"
@@ -54,7 +54,7 @@ config.protocol = "st"
 config.api = "tgi"
 config.scale_factor = 1.0
 config.dataset_type = "bailian"
-config.dataset_path = "${dataset_dir}/${toB_trace_name}"
+config.dataset_path = "${dataset_dir}/${thinking_trace_name}"
 config.time_in_secs = 1200
 config.truncate = 16000
-config.output_path = "${output_dir}/client_toB.jsonl"
+config.output_path = "${output_dir}/client_thinking.jsonl"
