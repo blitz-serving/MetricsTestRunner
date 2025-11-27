@@ -52,7 +52,7 @@ SSH_PORT=10022
 
 # Evaluation duration in seconds
 # TODO, client need about 2min to fill the channel
-TIME_IN_SEC=$((600 + 180))
+TIME_IN_SEC=$((1200 + 10))
 
 # Session name for tmux
 SESSION_NAME="bailian"
@@ -238,8 +238,9 @@ setup_output_directory() {
 }
 
 wait_for_vllm_startup() {
+    echo "Start to Waiting local vLLM..."
     local remote_dir="$OUTPUT_DIR"
-    local max_wait_sec=240 # 4 minutes + 1min for load flashinfer
+    local max_wait_sec=180 # 4 minutes + 1min for load flashinfer
     local elapsed=0
     local check_interval=5
 
@@ -287,6 +288,7 @@ wait_for_vllm_startup() {
 }
 
 wait_for_remote_vllm_startup() {
+    echo "Start to Waiting remote vLLM..."
     local remote_dir="$REMOTE_OUTPUT_DIR"
     local max_wait_sec=30 # the remote vllm should already started up
     local elapsed=0
@@ -406,6 +408,13 @@ launch_experiment_session() {
     tmux send-keys -t "$session_name:window2" "$tmux_cmd && python ../../smart_runner.py --toml $config2 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
     sleep 20
 
+    # Check if router_v2 process is running
+    if ! pgrep -f "router_v2" > /dev/null; then
+        echo "FATAL: router_v2 failed to start in time. Aborting experiment." >&2
+        cleanup_processes
+        exit 1
+    fi
+
     # Launch client
     echo "Launching client..."
     tmux new-window -t "$session_name" -n window3
@@ -441,8 +450,8 @@ post_process_results() {
     cat "$output_dir"/client*.jsonl > "$output_dir/client.jsonl"
     
     echo "Generating overall figures..."
-    "$venv_path/bin/python" "../../figures/analyze_load_with_time.py" "$output_dir/" 
-    "$venv_path/bin/python" "../../figures/analyze_load_with_time.py" "$output_dir/" --smooth-window 5 --instances 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+    #"$venv_path/bin/python" "../../figures/analyze_load_with_time.py" "$output_dir/" 
+    #"$venv_path/bin/python" "../../figures/analyze_load_with_time.py" "$output_dir/" --smooth-window 5 --instances 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
 
     echo "Generating send gap fig \\n"
     "$venv_path/bin/python" "../../figures/draw_send_gap.py" "$output_dir/" --time-window=2.0
@@ -460,7 +469,7 @@ post_process_results() {
     "$venv_path/bin/python" "../../figures/analyze_statistics_smooth.py" "$output_dir/"
     "$venv_path/bin/python" "../../figures/analyze_statistics_smooth.py" "$output_dir/" --smooth-window 5 --instances 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
 
-    "$venv_path/bin/python" "../../figures/plot_interference.py" "$output_dir/" --smooth-window 15
+    #"$venv_path/bin/python" "../../figures/plot_interference.py" "$output_dir/" --smooth-window 15
 }
 
 # Cleanup processes after experiment

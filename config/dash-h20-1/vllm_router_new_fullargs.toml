@@ -32,7 +32,7 @@ online_refine = false
 
 # ========== 路由器配置（不变）==========
 [app.router]
-executable = ["${blitzdir}/target/debug/router_v2"]
+executable = ["${blitzdir}/target/release/router_v2"]
 extra_args = ["--use-tokenizer"]
 
 [app.router.macro_rules]

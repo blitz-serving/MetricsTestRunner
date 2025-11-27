@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# ./batch_1117_bailian_plus_lwl.sh
+./batch_1126_toB_sc8-15min.sh
 
-# ./batch_1117_bailian_plus_lwl_b.sh
+cd /mnt/debugger/hjb/node1/blitz-infer-pack
+git restore exps/blitz-run/configs/config-stubs.json
+git checkout tmp-merge-simulator
 
-./batch_1118_lwl_linear.sh
-
-./batch_1118_llumnix_linear.sh
-
-
+# back
+cd -
+./batch_1126_toB_sc8-15min-pad.sh

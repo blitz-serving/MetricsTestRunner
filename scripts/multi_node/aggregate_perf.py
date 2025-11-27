@@ -11,6 +11,7 @@ TARGET_POLICIES = {
     "bailian-impl-06",
     "join-shortest-q-tuple",
     "join-shortest-q-weight",
+    "least-wait-token-random",
     "round-robin-q",
     "least-bs-random",
     "llumnix-linear-04",

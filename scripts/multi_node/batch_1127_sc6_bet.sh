@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(5.0)
+SCALING_FACTORS=(5.5)
 
 # Define batch sizes to test
 BATCH_SIZES=(1024)
@@ -39,7 +39,9 @@ SSH_PORT=10022
 #POLICIES=("round-robin-q" "least-bs-random" "llumnix-linear-04" "join-shortest-q-weight" "join-shortest-q-tuple" "bailian-impl-06" "dynamo-deterministic" "least-wait-token-q" "least-wait-token-random" "least-wait-token-bs" "least-wait-token-gated-bs" "join-shortest-q-ttft")
 #POLICIES=("least-wait-token-q" "least-wait-token-random" "llmd-impl-q")
 #POLICIES=("dynamo-deterministic" "least-wait-token-gated-bs" "least-wait-token-bs")
-POLICIES=("join-shortest-q-ttft" "llmd-impl-q" "poly-serve-impl-q" "slo-serve-impl-q")
+# TODO, new ttft+bs policy
+# "llmd-impl-q" "poly-serve-impl-q" "slo-serve-impl-q" "least-ttft-bs-tuple"
+POLICIES=("join-shortest-q-ttft" "least-wait-token-gated-bs")
 
 # Base paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -92,7 +94,7 @@ echo "Phase 2: Running experiments for each batch size, scaling factor, and poli
 
 for bs in ${BATCH_SIZES[@]}; do
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1126_predictions_lasttry_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1127_sc6_bet_r$run_id"
         
         if [[ "$USE_REMOTE" == "True" ]]; then
             BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_flashinfer.toml"
@@ -223,7 +225,7 @@ echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1126_predictions_lasttry_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1127_sc6_bet_r$run_id"
         
         for sf in ${SCALING_FACTORS[@]}; do
             echo "Generating plots for batch size: $bs, scaling factor: $sf"
