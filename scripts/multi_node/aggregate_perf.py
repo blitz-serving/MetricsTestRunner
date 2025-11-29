@@ -15,9 +15,14 @@ TARGET_POLICIES = {
     "round-robin-q",
     "least-bs-random",
     "llumnix-linear-04",
-    "join-shortest-q-ttft"
+    "least-ttft-bs-tuple",
+    "least-wait-token-mul-bs",
+    "least-wait-token-mul-tbt",
 }
-
+# "join-shortest-q-ttft",
+# 
+#     "llmd-impl-q",
+#     "slo-serve-impl-q"
 def parse_perf_log(file_path):
     results = []
     current_policy = None
@@ -105,7 +110,7 @@ def main():
         print("No complete metrics found for target policies.")
         return
 
-    baseline_policy = max(summary, key=lambda p: summary[p]['mean_ttft'])
+    baseline_policy = max(summary, key=lambda p: summary[p]['mean_tpot'])
     baseline = summary[baseline_policy]
 
     print(f"Baseline policy (worst TTFT among targets): {baseline_policy}")
@@ -128,7 +133,7 @@ def main():
         })
 
     # Sort by TTFT descending (worst on top)
-    output_rows.sort(key=lambda x: x['TTFT'], reverse=True)
+    output_rows.sort(key=lambda x: x['TPOT'], reverse=True)
 
     # --- Print human-readable table ---
     header = f"{'Policy':<28} {'TTFT':>10} {'TPOT':>8} {'Total':>10} {'R_TTFT':>8} {'R_TPOT':>8} {'R_Total':>8}"

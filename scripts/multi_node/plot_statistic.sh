@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 定义参数
-qps_list=("1.0")
+qps_list=("5.0")
 bs_list=("1024")
 #tag="dynamo_bailian_round2"
 #policy="join-shortest-q-tuple"  # 可选值: "all" 或 具体策略名，如 "join-shortest-q-tuple"
@@ -15,7 +15,7 @@ for r in 1; do
   #tag="flashinfer_predictions_r$r"
   #tag="dynamo_bailian_round2"
   #tag="1118_lwl_bs_tuple_r1"
-  tag="flashinfer_1125_thinking_try_r$r"
+  tag="flashinfer_1128_toB_r$r"
   for qps in "${qps_list[@]}"; do
     for bs in "${bs_list[@]}"; do
       dirname="${qps}_batch${bs}_u0.9_${tag}"
@@ -58,8 +58,8 @@ for r in 1; do
               # 创建目标目录（保留原目录名
               #python ../../figures/analyze_overall_hit_rate.py "$dir" --smooth-window 10
 
-              #python ../../figures/analyze_overall_hit_rate.py "$dir" --smooth-window 15
-              python ../../figures/plot_interference_merged_by_time.py "$dir" --start-time 0 --end-time 1400 --instances 0 2 4 3 14 15 --smooth-window 10
+              python ../../figures/analyze_overall_hit_rate.py "$dir" --smooth-window 5
+              # python ../../figures/plot_interference_merged_by_time.py "$dir" --start-time 0 --end-time 1400 --instances 0 2 4 3 14 15 --smooth-window 10
               #python ../../figures/cp_cycle.py "$dir" --start-time 600 --end-time 10000 --instances 0 3 8 15 --smooth-window 5
               #python ../../figures/analyze_tpot_cluster.py "$dir" --instances 0 3 7 8 12 15
               # Plotting waiting-p-tks to see some zeros

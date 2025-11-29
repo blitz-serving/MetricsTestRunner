@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(6.0)
+SCALING_FACTORS=(5.0)
 
 # Define batch sizes to test
 BATCH_SIZES=(1024)
@@ -36,8 +36,9 @@ SSH_PORT=10022
 #POLICIES=("dynamo-deterministic" "least-wait-token-random" "least-wait-token-bs" "bailian-impl-lwl-00" "bailian-impl-lwl-01" "bailian-impl-lwl-02" "bailian-impl-lwl-03" "bailian-impl-lwl-04" "bailian-impl-lwl-05" "bailian-impl-lwl-06" "bailian-impl-lwl-07" "bailian-impl-lwl-08" "bailian-impl-lwl-09" "bailian-impl-lwl-10")
 #POLICIES=("bailian-impl-06" "dynamo-deterministic" "least-wait-token-bs")
 #POLICIES=("bailian-tuple" "llumnix-tuple" "bailian-impl-06" "llumnix-linear-04")
-# 18 policies 25min = 7.5h
-POLICIES=("round-robin-q" "least-bs-random" "llumnix-linear-04" "llumnix-tuple" "join-shortest-q-weight" "join-shortest-q-tuple" "bailian-impl-06" "bailian-tuple" "dynamo-deterministic" "least-wait-token-q" "least-wait-token-random" "least-wait-token-bs" "least-wait-token-gated-bs" "join-shortest-q-ttft" "least-ttft-bs-tuple" "llmd-impl-q" "poly-serve-impl-q" "slo-serve-impl-q")
+# 18 policies 25min = 7.5h Actual 8.0h
+POLICIES=("round-robin-q" "least-bs-random" "llumnix-linear-04" "llumnix-tuple" "join-shortest-q-weight" "join-shortest-q-tuple" "bailian-impl-06" "bailian-tuple" "dynamo-deterministic" "least-wait-token-q" "least-wait-token-random" "least-wait-token-bs" "least-wait-token-gated-bs" "least-ttft-bs-tuple")
+# "join-shortest-q-ttft" "least-ttft-bs-tuple" "llmd-impl-q" "poly-serve-impl-q" "slo-serve-impl-q"
 #POLICIES=("least-wait-token-q" "least-wait-token-random" "llmd-impl-q")
 #POLICIES=("dynamo-deterministic" "least-wait-token-gated-bs" "least-wait-token-bs")
 #POLICIES=("join-shortest-q-ttft" "least-ttft-bs-tuple" "llmd-impl-q" "poly-serve-impl-q" "slo-serve-impl-q")
@@ -90,132 +91,132 @@ echo "Template generation completed successfully."
 # Phase 2: Running Experiments
 # -----------------------------------------------------------------------------
 
-echo "Phase 2: Running experiments for each batch size, scaling factor, and policy..."
+# echo "Phase 2: Running experiments for each batch size, scaling factor, and policy..."
 
-for bs in ${BATCH_SIZES[@]}; do
-    for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1126_toB_r$run_id"
+# for bs in ${BATCH_SIZES[@]}; do
+#     for run_id in 1; do  # Run 3 times: r1, r2, r3
+#         TAG="batch${bs}_u0.9_flashinfer_1127_toB_r$run_id"
         
-        if [[ "$USE_REMOTE" == "True" ]]; then
-            BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_flashinfer.toml"
-        else
-            BACKEND_CFG="$CONFIG_DIR/launch_vllm_8instances_b${bs}_flashinfer.toml"
-        fi
+#         if [[ "$USE_REMOTE" == "True" ]]; then
+#             BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_flashinfer.toml"
+#         else
+#             BACKEND_CFG="$CONFIG_DIR/launch_vllm_8instances_b${bs}_flashinfer.toml"
+#         fi
 
-        # if [[ "$USE_REMOTE" == "True" ]]; then
-        #     BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}.toml"
-        # else
-        #     BACKEND_CFG="$CONFIG_DIR/launch_vllm_8instances_b${bs}.toml"
-        # fi
+#         # if [[ "$USE_REMOTE" == "True" ]]; then
+#         #     BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}.toml"
+#         # else
+#         #     BACKEND_CFG="$CONFIG_DIR/launch_vllm_8instances_b${bs}.toml"
+#         # fi
 
-        for sf in ${SCALING_FACTORS[@]}; do
-            echo "Processing batch size: $bs, scaling factor: $sf"
+#         for sf in ${SCALING_FACTORS[@]}; do
+#             echo "Processing batch size: $bs, scaling factor: $sf"
             
-            # Create directory for this batch size and scaling factor
-            SF_DIR="$OUTPUT_BASE/${sf}_${TAG}"
-            REMOTE_SF_DIR="$REMOTE_OUTPUT_BASE/${sf}_${TAG}"
-            mkdir -p "$SF_DIR"
+#             # Create directory for this batch size and scaling factor
+#             SF_DIR="$OUTPUT_BASE/${sf}_${TAG}"
+#             REMOTE_SF_DIR="$REMOTE_OUTPUT_BASE/${sf}_${TAG}"
+#             mkdir -p "$SF_DIR"
             
-            # Get the generated config file for this scaling factor
-            CLIENT_CFG="$GENERATED_CONFIGS_DIR/bailian_clients_sf${sf}.toml"
+#             # Get the generated config file for this scaling factor
+#             CLIENT_CFG="$GENERATED_CONFIGS_DIR/bailian_clients_sf${sf}.toml"
         
-            if [ ! -f "$CLIENT_CFG" ]; then
-                echo "Error: Client config file not found for scaling factor $sf"
-                continue
-            fi
+#             if [ ! -f "$CLIENT_CFG" ]; then
+#                 echo "Error: Client config file not found for scaling factor $sf"
+#                 continue
+#             fi
         
-            # Run experiments for each policy with retry logic
-            for policy in ${POLICIES[@]}; do
-                echo "Running experiment for policy: $policy"
+#             # Run experiments for each policy with retry logic
+#             for policy in ${POLICIES[@]}; do
+#                 echo "Running experiment for policy: $policy"
                 
-                max_retries=5
-                retry_count=0
-                succeeded=false
+#                 max_retries=5
+#                 retry_count=0
+#                 succeeded=false
                 
-                while [ $retry_count -lt $max_retries ]; do
-                    echo "Attempt $(($retry_count + 1))/$max_retries for batch size $bs, scaling factor '$sf', policy '$policy'..."
+#                 while [ $retry_count -lt $max_retries ]; do
+#                     echo "Attempt $(($retry_count + 1))/$max_retries for batch size $bs, scaling factor '$sf', policy '$policy'..."
                     
-                    # Generate timestamp
-                    TIMESTAMP=$(date +%Y%m%d%H%M%S)
+#                     # Generate timestamp
+#                     TIMESTAMP=$(date +%Y%m%d%H%M%S)
                     
-                    # Create output directory for this experiment
-                    OUTPUT_DIR="$SF_DIR/${TIMESTAMP}_${policy}"
-                    REMOTE_OUTPUT_DIR="$REMOTE_SF_DIR/${TIMESTAMP}_${policy}"
-                    mkdir -p "$OUTPUT_DIR"
+#                     # Create output directory for this experiment
+#                     OUTPUT_DIR="$SF_DIR/${TIMESTAMP}_${policy}"
+#                     REMOTE_OUTPUT_DIR="$REMOTE_SF_DIR/${TIMESTAMP}_${policy}"
+#                     mkdir -p "$OUTPUT_DIR"
                     
-                    # Run the experiment using bailian_dash2.sh
-                    if "$SCRIPT_DIR/bailian_dash.sh" \
-                        --output-dir "$OUTPUT_DIR" \
-                        --remote-output-dir "$REMOTE_OUTPUT_DIR" \
-                        "$BACKEND_CFG" \
-                        "$ROUTER_CFG" \
-                        "$CLIENT_CFG" \
-                        "$policy"; then
-                        echo "✅ Experiment completed successfully for batch size $bs, scaling factor $sf, policy $policy"
-                        succeeded=true
-                        break
-                    else
-                        exit_code=$?
-                        echo "❌ Experiment failed for batch size $bs, scaling factor $sf, policy $policy with exit code $exit_code"
-                        retry_count=$((retry_count + 1))
-                        if [ $retry_count -lt $max_retries ]; then
-                            echo "⏳ Retrying in 15 seconds..."
-                            sleep 15
-                        fi
-                    fi
-                done
+#                     # Run the experiment using bailian_dash2.sh
+#                     if "$SCRIPT_DIR/bailian_dash.sh" \
+#                         --output-dir "$OUTPUT_DIR" \
+#                         --remote-output-dir "$REMOTE_OUTPUT_DIR" \
+#                         "$BACKEND_CFG" \
+#                         "$ROUTER_CFG" \
+#                         "$CLIENT_CFG" \
+#                         "$policy"; then
+#                         echo "✅ Experiment completed successfully for batch size $bs, scaling factor $sf, policy $policy"
+#                         succeeded=true
+#                         break
+#                     else
+#                         exit_code=$?
+#                         echo "❌ Experiment failed for batch size $bs, scaling factor $sf, policy $policy with exit code $exit_code"
+#                         retry_count=$((retry_count + 1))
+#                         if [ $retry_count -lt $max_retries ]; then
+#                             echo "⏳ Retrying in 15 seconds..."
+#                             sleep 15
+#                         fi
+#                     fi
+#                 done
                 
-                if [ "$succeeded" = false ]; then
-                    echo "💥 Experiment failed after $max_retries attempts for batch size $bs, scaling factor $sf, policy $policy"
-                fi
-            done
+#                 if [ "$succeeded" = false ]; then
+#                     echo "💥 Experiment failed after $max_retries attempts for batch size $bs, scaling factor $sf, policy $policy"
+#                 fi
+#             done
             
-            # Move directories to NFS after completing all policies for this batch size and scaling factor
-            # echo "Moving TMP DIR to NFS for batch size $bs, scaling factor $sf"
-            # mv $SF_DIR $STORE_OUTPUT_BASE
-            # ssh -p "$SSH_PORT" "$REMOTE_IPS" "mv '${REMOTE_SF_DIR}' '${STORE_REMOTE_OUTPUT_BASE}'"
-            # echo "Moving TMP DIR to NFS for batch size $bs, scaling factor $sf"
-            # if [[ "$SF_DIR" != /tmp/* ]] || [[ ! -d "$SF_DIR" ]]; then
-            #     echo "ERROR: SF_DIR ('$SF_DIR') is not a valid directory under /tmp/" >&2
-            #     exit 1
-            # fi
-            # if [[ "$REMOTE_SF_DIR" != /tmp/* ]]; then
-            #     echo "ERROR: REMOTE_SF_DIR ('$REMOTE_SF_DIR') is not under /tmp/" >&2
-            #     exit 1
-            # fi
-            # rsync -av "$SF_DIR" "$STORE_OUTPUT_BASE/" && rm -rf "$SF_DIR"
-            # ssh -p "$SSH_PORT" "$REMOTE_IPS" "
-            #     if [[ '$REMOTE_SF_DIR' != /tmp/* ]] || [[ ! -d '$REMOTE_SF_DIR' ]]; then
-            #         echo 'ERROR: Remote REMOTE_SF_DIR is not a valid directory under /tmp/' >&2
-            #         exit 1
-            #     fi
-            #     rsync -av '$REMOTE_SF_DIR' '$STORE_REMOTE_OUTPUT_BASE/' && rm -rf '$REMOTE_SF_DIR'
-            # "
-            echo "Moving TMP DIR to NFS for batch size $bs, scaling factor $sf"
-            if [[ "$SF_DIR" != /tmp/* ]] || [[ ! -d "$SF_DIR" ]]; then
-                echo "ERROR: SF_DIR ('$SF_DIR') is not a valid directory under /tmp/" >&2
-                exit 1
-            fi
-            rsync -av "$SF_DIR" "$STORE_OUTPUT_BASE/" && rm -rf "$SF_DIR"
-            # Only sync remote if USE_REMOTE is True
-            if [[ "$USE_REMOTE" == "True" ]]; then
-                if [[ "$REMOTE_SF_DIR" != /tmp/* ]]; then
-                    echo "ERROR: REMOTE_SF_DIR ('$REMOTE_SF_DIR') is not under /tmp/" >&2
-                    exit 1
-                fi
-                ssh -p "$SSH_PORT" "$REMOTE_IPS" "
-                    if [[ '$REMOTE_SF_DIR' != /tmp/* ]] || [[ ! -d '$REMOTE_SF_DIR' ]]; then
-                        echo 'ERROR: Remote REMOTE_SF_DIR is not a valid directory under /tmp/' >&2
-                        exit 1
-                    fi
-                    rsync -av '$REMOTE_SF_DIR' '$STORE_REMOTE_OUTPUT_BASE/' && rm -rf '$REMOTE_SF_DIR'
-                "
-            fi
-        done
-    done
-done
+#             # Move directories to NFS after completing all policies for this batch size and scaling factor
+#             # echo "Moving TMP DIR to NFS for batch size $bs, scaling factor $sf"
+#             # mv $SF_DIR $STORE_OUTPUT_BASE
+#             # ssh -p "$SSH_PORT" "$REMOTE_IPS" "mv '${REMOTE_SF_DIR}' '${STORE_REMOTE_OUTPUT_BASE}'"
+#             # echo "Moving TMP DIR to NFS for batch size $bs, scaling factor $sf"
+#             # if [[ "$SF_DIR" != /tmp/* ]] || [[ ! -d "$SF_DIR" ]]; then
+#             #     echo "ERROR: SF_DIR ('$SF_DIR') is not a valid directory under /tmp/" >&2
+#             #     exit 1
+#             # fi
+#             # if [[ "$REMOTE_SF_DIR" != /tmp/* ]]; then
+#             #     echo "ERROR: REMOTE_SF_DIR ('$REMOTE_SF_DIR') is not under /tmp/" >&2
+#             #     exit 1
+#             # fi
+#             # rsync -av "$SF_DIR" "$STORE_OUTPUT_BASE/" && rm -rf "$SF_DIR"
+#             # ssh -p "$SSH_PORT" "$REMOTE_IPS" "
+#             #     if [[ '$REMOTE_SF_DIR' != /tmp/* ]] || [[ ! -d '$REMOTE_SF_DIR' ]]; then
+#             #         echo 'ERROR: Remote REMOTE_SF_DIR is not a valid directory under /tmp/' >&2
+#             #         exit 1
+#             #     fi
+#             #     rsync -av '$REMOTE_SF_DIR' '$STORE_REMOTE_OUTPUT_BASE/' && rm -rf '$REMOTE_SF_DIR'
+#             # "
+#             echo "Moving TMP DIR to NFS for batch size $bs, scaling factor $sf"
+#             if [[ "$SF_DIR" != /tmp/* ]] || [[ ! -d "$SF_DIR" ]]; then
+#                 echo "ERROR: SF_DIR ('$SF_DIR') is not a valid directory under /tmp/" >&2
+#                 exit 1
+#             fi
+#             rsync -av "$SF_DIR" "$STORE_OUTPUT_BASE/" && rm -rf "$SF_DIR"
+#             # Only sync remote if USE_REMOTE is True
+#             if [[ "$USE_REMOTE" == "True" ]]; then
+#                 if [[ "$REMOTE_SF_DIR" != /tmp/* ]]; then
+#                     echo "ERROR: REMOTE_SF_DIR ('$REMOTE_SF_DIR') is not under /tmp/" >&2
+#                     exit 1
+#                 fi
+#                 ssh -p "$SSH_PORT" "$REMOTE_IPS" "
+#                     if [[ '$REMOTE_SF_DIR' != /tmp/* ]] || [[ ! -d '$REMOTE_SF_DIR' ]]; then
+#                         echo 'ERROR: Remote REMOTE_SF_DIR is not a valid directory under /tmp/' >&2
+#                         exit 1
+#                     fi
+#                     rsync -av '$REMOTE_SF_DIR' '$STORE_REMOTE_OUTPUT_BASE/' && rm -rf '$REMOTE_SF_DIR'
+#                 "
+#             fi
+#         done
+#     done
+# done
 
-echo "All experiments completed."
+# echo "All experiments completed."
 
 # -----------------------------------------------------------------------------
 # Phase 3: Plotting Results
@@ -225,7 +226,7 @@ echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1126_toB_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1127_toB_r$run_id"
         
         for sf in ${SCALING_FACTORS[@]}; do
             echo "Generating plots for batch size: $bs, scaling factor: $sf"
@@ -243,18 +244,17 @@ for bs in ${BATCH_SIZES[@]}; do
             unset latest_dirs  # Clear any previous data
             declare -A latest_dirs
         
-            # Find all experiment directories for this batch size and scaling factor
-            # Only search within the specific SF_DIR, do not look elsewhere
+            POLICIES_STR=" ${POLICIES[*]} "
             while IFS= read -r -d '' dir; do
-                # Only process directories that contain client.jsonl
                 if [ -f "$dir/client.jsonl" ]; then
                     basename_dir=$(basename "$dir")
-                    # Match format: timestamp_policy (timestamp + underscore + policy name)
                     if [[ $basename_dir =~ ^[0-9]+_([a-zA-Z0-9_-]+)$ ]]; then
                         policy="${BASH_REMATCH[1]}"
-                        # Only process policies we care about
-                        if [[ -z "${latest_dirs[$policy]}" ]] || [[ "$basename_dir" > "${latest_dirs[$policy]##*/}" ]]; then
-                            latest_dirs[$policy]="$dir"
+                        # Only consider policies in the POLICIES array
+                        if [[ " ${POLICIES_STR} " == *" $policy "* ]]; then
+                            if [[ -z "${latest_dirs[$policy]}" ]] || [[ "$basename_dir" > "${latest_dirs[$policy]##*/}" ]]; then
+                                latest_dirs[$policy]="$dir"
+                            fi
                         fi
                     fi
                 fi

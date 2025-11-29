@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(5.0)
+SCALING_FACTORS=(1.0)
 
 # Define batch sizes to test
 BATCH_SIZES=(1024)
@@ -32,11 +32,12 @@ SSH_PORT=10022
 # Noted that bound-mosthit-q can only run 1024 now.. "least-wait-token-q" "bounded-most-hit-q"
 #POLICIES=("round-robin-q" "random-q" "bailian-impl-00" "bailian-impl-01" "bailian-impl-02" "bailian-impl-03" "bailian-impl-04" "bailian-impl-05" "bailian-impl-06" "bailian-impl-07" "bailian-impl-08" "bailian-impl-09" "bailian-impl-10" "least-wait-token-q" "join-shortest-q-weight")
 #POLICIES=("round-robin-q" "dynamo-deterministic" "least-wait-token-random" "least-wait-token-q" "least-wait-token-bs" "bailian-impl-06" "join-shortest-q-weight" "join-shortest-q-tuple")
-POLICIES=("round-robin-q")
+#POLICIES=("round-robin-q")
 #POLICIES=("dynamo-deterministic" "least-wait-token-random" "least-wait-token-bs" "bailian-impl-lwl-00" "bailian-impl-lwl-01" "bailian-impl-lwl-02" "bailian-impl-lwl-03" "bailian-impl-lwl-04" "bailian-impl-lwl-05" "bailian-impl-lwl-06" "bailian-impl-lwl-07" "bailian-impl-lwl-08" "bailian-impl-lwl-09" "bailian-impl-lwl-10")
 #POLICIES=("bailian-impl-06" "dynamo-deterministic" "least-wait-token-bs")
 #POLICIES=("bailian-tuple" "llumnix-tuple" "bailian-impl-06" "llumnix-linear-04")
-#POLICIES=("round-robin-q" "least-bs-random" "llumnix-linear-04" "llumnix-tuple" "join-shortest-q-weight" "join-shortest-q-tuple" "bailian-impl-06" "bailian-tuple" "dynamo-deterministic" "least-wait-token-q" "least-wait-token-random" "least-wait-token-bs" "least-wait-token-gated-bs")
+# 8.0h
+POLICIES=("least-wait-token-random" "least-wait-token-gated-bs")
 #POLICIES=("least-wait-token-q" "least-wait-token-random" "llmd-impl-q")
 #POLICIES=("dynamo-deterministic" "least-wait-token-gated-bs" "least-wait-token-bs")
 #POLICIES=("llmd-impl-q" "poly-serve-impl-q" "slo-serve-impl-q")
@@ -56,8 +57,8 @@ STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node2/lmmetric-logs"
 #ROUTER_CFG="$CONFIG_DIR/vllm_router.toml"
 ROUTER_CFG="$CONFIG_DIR/vllm_router_new_fullargs.toml" # For prediction based policies
 #CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients" # ToC
-#CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients_thinking.toml" # Thiking Trace
-CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb.toml" # TraceB
+CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients_thinking.toml" # Thiking Trace
+#CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb.toml" # TraceB
 # -----------------------------------------------------------------------------
 # Phase 1: Template Generation
 # -----------------------------------------------------------------------------
@@ -93,7 +94,7 @@ echo "Phase 2: Running experiments for each batch size, scaling factor, and poli
 
 for bs in ${BATCH_SIZES[@]}; do
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1126_toB_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1127_thinking_tmp_r$run_id"
         
         if [[ "$USE_REMOTE" == "True" ]]; then
             BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_flashinfer.toml"
@@ -224,7 +225,7 @@ echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1126_toB_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1127_thinking_tmp_r$run_id"
         
         for sf in ${SCALING_FACTORS[@]}; do
             echo "Generating plots for batch size: $bs, scaling factor: $sf"

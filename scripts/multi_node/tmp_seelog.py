@@ -8,7 +8,9 @@ def main(input_file):
         'queue_time': [],
         'avg_time_between_tokens': [],
         'first_token_time': [],
-        'total_time': []
+        'total_time': [],
+        'input_length': [],
+        'output_length': []
     }
     status_200_count = 0
     non_200_counts = defaultdict(int)  # 统计每种非200状态的出现次数
@@ -53,7 +55,7 @@ def main(input_file):
     print()
 
     # 统计并输出性能指标
-    metrics = ['queue_time', 'avg_time_between_tokens', 'first_token_time', 'total_time']
+    metrics = ['queue_time', 'avg_time_between_tokens', 'first_token_time', 'total_time', 'input_length', 'output_length']
     for metric in metrics:
         values = success_data[metric]
         if not values:
@@ -65,13 +67,16 @@ def main(input_file):
         p50 = np.percentile(arr, 50)
         p90 = np.percentile(arr, 90)
         p99 = np.percentile(arr, 99)
+        mini = np.min(arr)
+        maxx = np.max(arr)
 
         print(f"{metric}:")
         print(f"  mean: {mean:.2f}")
         print(f"  p50:  {p50:.2f}")
         print(f"  p90:  {p90:.2f}")
         print(f"  p99:  {p99:.2f}")
-        print()
+        print(f"  min:  {mini:.2f}")
+        print(f"  maxx:  {maxx:.2f}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

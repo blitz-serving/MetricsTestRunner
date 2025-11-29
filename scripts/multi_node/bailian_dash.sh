@@ -378,8 +378,18 @@ launch_experiment_session() {
     # Change to that directory
     cd "$SCRIPT_DIR" || exit 1
 
-    # Launch vLLM backends if not skipped
+    # ==========================
+    # START CPU MONITOR
+    # ==========================
+    pkill -9 -f "cpu_monitor.py"
+    sleep 3
+    local cpu_monitor_log="$output_dir/cpu_usage.log"
+    mkdir -p "$output_dir"
+    "$venv_path/bin/python" "$SCRIPT_DIR/cpu_monitor.py" -o "$cpu_monitor_log" &
+    local cpu_monitor_pid=$!
+    echo "Started CPU monitor (PID: $cpu_monitor_pid), logging to $cpu_monitor_log"
 
+    # Launch vLLM backends if not skipped
     if [ "$no_backend" = false ]; then
         echo "Launching vLLM backends and waiting ..."
         tmux new-window -t "$session_name" -n window1
@@ -438,6 +448,13 @@ launch_experiment_session() {
             break
         fi
     done
+
+    # ==========================
+    # STOP CPU MONITOR
+    # ==========================
+    pkill -9 -f "cpu_monitor.py"
+    echo "CPU monitor already stopped."
+    sleep 5
 }
 
 # Merge client logs and generate figures
@@ -480,7 +497,7 @@ cleanup_processes() {
     kill_processes_by_pattern "router_v2" "router"
     kill_processes_by_pattern "smart_runner.py" "smart runner"
     kill_processes_by_pattern "$WORK_DIR/target/release/client" "previous client"
-
+    pkill -9 -f "cpu_monitor.py"
     # Clean up remote processes ONLY if USE_REMOTE is True
     if [[ "$USE_REMOTE" == "True" ]] && [ -n "$REMOTE_IPS" ] && [ -n "$REMOTE_VENV_PATH" ]; then
         kill_remote_processes_by_pattern "$REMOTE_VENV_PATH/bin/vllm" "remote vLLM" "$REMOTE_IPS" "$REMOTE_VENV_PATH"
