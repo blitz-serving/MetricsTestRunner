@@ -1,0 +1,73 @@
+# ========== 启动配置 ==========
+
+[runtime.ssh_0]
+config = [
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "0", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 0 },
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "1", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 1 },
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "2", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 2 },
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "3", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 3 },
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "4", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 4 },
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "5", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 5 },
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "6", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 6 },
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "7", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 7 },
+]
+
+# Note that we must leave one local vllm to block all processes
+# So we define the remote config first
+[runtime.raw]
+config = [
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "0", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 0 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "1", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 1 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "2", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 2 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "3", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 3 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "4", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 4 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "5", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 5 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "6", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = true, port_offset = 6 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "7", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED=42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_CACHE_ROOT = "/root/.cache/vllm-flashinfer", VLLM_USE_FLASHINFER_SAMPLER=0, OMP_NUM_THREADS=1}, background = false, port_offset = 7 },
+]
+
+
+
+# ======= Shared variables ========
+# can be ingested from outside to avoid hard coding
+# NOTE: RHS can only expand parameters defined outside ${var-name}
+[variables]
+model_path = "${model-path}"
+blitzdir = "${work-dir}"
+tokenizer_path = "${model-path}/tokenizer.json"
+remote_model_path = "${remote-model-path}"
+remote_tokenizer_path = "${remote-model-path}/tokenizer.json"
+vllm_executable = "${venv-path}/bin/vllm serve"
+remote_vllm_executable = "${remote-venv-path}/bin/vllm serve"
+base_vllm_port = 60180
+remote_base_vllm_port = 59180
+remote_ips = ["172.27.21.64"]
+remote_ssh_port = 10022
+remote_output_dir = "${remote-output-dir}"
+output_dir = "${output-dir}"
+gpu_memory_utilization = 0.9
+
+# ========== 模板定义 ==========
+#  "--base-port", "${base_vllm_port}",
+
+# "--no-enable-prefix-caching",
+# "--prefix_caching_hash_algo", "sha256",
+[app.vllm_template]
+executable = ["${vllm_executable}"]
+extra_args = [
+    "${model_path}",
+    "--max-num-batched-tokens", "1024",
+    "--port", "${port}",
+    "--gpu-memory-utilization", "${gpu_memory_utilization}",
+    "> ${log_file} 2>&1"
+]
+
+[app.vllm_remote_template]
+executable = ["${remote_vllm_executable}"]
+extra_args = [
+    "${remote_model_path}",
+    "--max-num-batched-tokens", "1024",
+    "--port", "${port}",
+    "--gpu-memory-utilization", "${gpu_memory_utilization}",
+    "> ${log_file} 2>&1"
+]

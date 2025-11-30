@@ -15,9 +15,16 @@ TARGET_POLICIES = {
     "round-robin-q",
     "least-bs-random",
     "llumnix-linear-04",
-    "least-ttft-bs-tuple",
     "least-wait-token-mul-bs",
     "least-wait-token-mul-tbt",
+    "least-wait-token-total-mul-bs",
+    "least-wait-token-mul-bs-sample",
+    "least-wait-token-mul-bs-bs",
+    #"least-ttft-bs-tuple",
+    # "join-shortest-q-ttft",
+    # "llmd-impl-q",
+    # "slo-serve-impl-q",
+    # "poly-serve-q"
 }
 # "join-shortest-q-ttft",
 # 
@@ -136,11 +143,11 @@ def main():
     output_rows.sort(key=lambda x: x['TPOT'], reverse=True)
 
     # --- Print human-readable table ---
-    header = f"{'Policy':<28} {'TTFT':>10} {'TPOT':>8} {'Total':>10} {'R_TTFT':>8} {'R_TPOT':>8} {'R_Total':>8}"
+    header = f"{'Policy':<35} {'TTFT':>10} {'TPOT':>8} {'Total':>10} {'R_TTFT':>8} {'R_TPOT':>8} {'R_Total':>8}"
     print(header)
     print("-" * len(header))
     for row in output_rows:
-        print(f"{row['Policy']:<28} "
+        print(f"{row['Policy']:<35} "
               f"{row['TTFT']:>10.2f} "
               f"{row['TPOT']:>8.2f} "
               f"{row['Total']:>10.2f} "

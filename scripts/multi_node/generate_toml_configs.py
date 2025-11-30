@@ -17,7 +17,7 @@ def generate_config(template_content, scale_factor):
     in_client_section = False
     
     for line in lines:
-        if line.strip() == '[app.client_toC]' or line.strip() == '[app.client_thinking]' or line.strip() == '[app.client_toB]':
+        if line.strip() == '[app.client_toC]' or line.strip() == '[app.client_thinking]' or line.strip() == '[app.client_toB]' or line.strip() == '[app.client_coder]':
             in_client_section = True
             new_lines.append(line)
         elif in_client_section and line.strip().startswith('config.scale_factor ='):

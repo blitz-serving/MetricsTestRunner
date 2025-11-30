@@ -2,8 +2,12 @@
 
 # 配置参数
 sc="5.0"
-tag="flashinfer_redoall_r"
-policies=("bailian-impl-06" "dynamo-deterministic")  # ← 在这里添加你的策略列表
+
+# moonckae
+# /mnt/debugger/hjb/node1/lmmetric-logs/5.0_batch1024_u0.9_flashinfer_1126_predictions_lasttry_r1/20251126205103_join-shortest-q-ttft
+
+tag="flashinfer_1126_predictions_lasttry_r1"
+policies=("join-shortest-q-ttft")  # ← 在这里添加你的策略列表
 
 base_src="/mnt/debugger/hjb/node1/lmmetric-logs/${sc}_batch1024_u0.9_${tag}"
 
@@ -41,7 +45,7 @@ for policy in "${policies[@]}"; do
     # 拷贝需要的文件（仅当存在时）
     [[ -f "$latest_dir/client.jsonl"    ]] && cp "$latest_dir/client.jsonl"    "$target_dir/"
     [[ -f "$latest_dir/statistic.log"   ]] && cp "$latest_dir/statistic.log"   "$target_dir/"
-    [[ -f "$latest_dir/router_v2.log"   ]] && cp "$latest_dir/router_v2.log"   "$target_dir/"
+    #[[ -f "$latest_dir/router_v2.log"   ]] && cp "$latest_dir/router_v2.log"   "$target_dir/"
 
     # 检查是否有文件被复制
     if [[ -z "$(ls -A "$target_dir")" ]]; then

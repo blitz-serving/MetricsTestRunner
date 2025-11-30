@@ -23,7 +23,7 @@ import numpy as np
 
 ZOOM_IN = False
 
-def load_jsonl_data(file_path: str) -> List[Dict]:
+def load_jsonl_data(file_path: str) -> Tuple[List[Dict], bool]:
     """
     Load data from a JSONL file, filtering out records with status != '200'.
     
@@ -34,6 +34,8 @@ def load_jsonl_data(file_path: str) -> List[Dict]:
         List of dictionaries containing the JSON data (filtered)
     """
     data = []
+    err_rate = 0
+    ok_number = 0
     try:
         with open(file_path, 'r') as f:
             line_num = 0
@@ -45,19 +47,23 @@ def load_jsonl_data(file_path: str) -> List[Dict]:
                         record = json.loads(line.strip())
                         # Filter out records where status is not '200'
                         status = record.get('status', '')
-                        if status == '200' or status == 'timeout':
+                        if status != '422': # only ignore these
+                            if status == '200':
+                                ok_number += 1
                             data.append(record)
                         else:
                             skip_line_num += 1
                     except json.JSONDecodeError as e:
                         print(f"Warning: Skipping invalid JSON on line {line_num}: {e}")
                         continue
-            print(f"Warning: skipped {skip_line_num=} requests (not 200 or normal timeout) lasting {len(data)}")
+            print(f"Warning: skipped {skip_line_num=} requests (422) lasting {len(data)}")
+            print(f"Warning: Success Rate {ok_number / len(data)} (200) / (not 422s)")
+            err_rate = 1.0 - ok_number / len(data)
     except FileNotFoundError:
         print(f"Error: File {file_path} not found")
         sys.exit(1)
     
-    return data
+    return data, err_rate
 
 
 def extract_metrics(data: List[Dict]) -> Dict[str, np.ndarray]:
@@ -96,7 +102,7 @@ def extract_metrics(data: List[Dict]) -> Dict[str, np.ndarray]:
             metrics['tpot'].append(tpot)
             metrics['inference_time'].append(inference_time)
             metrics['total_time'].append(total_time)
-        elif status == "timeout":
+        else:
             metrics['ttft'].append(-1)
             metrics['tpot'].append(-1)
             metrics['inference_time'].append(-1)
@@ -264,16 +270,45 @@ def main():
     all_data = {}
     all_metrics = {}
     
+    report_errs = []
     for i, dir_path in enumerate(args.dirs):
         # Construct path to client.jsonl file
         jsonl_path = os.path.join(dir_path, 'client.jsonl')
         
         # Load and process data
         print(f"\nProcessing data from {jsonl_path}")
-        data = load_jsonl_data(jsonl_path)
+        data, err_rate = load_jsonl_data(jsonl_path)
+        if (err_rate > 0.05):
+            report_errs.append({strategy_names[i]:err_rate})
         all_data[strategy_names[i]] = data
         metrics = extract_metrics(data)
         all_metrics[strategy_names[i]] = metrics
+    
+
+    # Count data points per strategy and identify outliers with significantly fewer samples
+    data_counts = {strategy: len(data) for strategy, data in all_data.items()}
+    max_count = max(data_counts.values()) if data_counts else 0
+
+    strategies_to_remove = []
+    for strategy, count in data_counts.items():
+        if max_count > 0 and (max_count - count) / max_count > 0.01:  # more than 1% fewer
+            strategies_to_remove.append(strategy)
+            report_errs.append({strategy: f"insufficient_data_points ({count}/{max_count})"})
+
+    # Remove strategies with too few data points
+    for strategy in strategies_to_remove:
+        del all_data[strategy]
+        del all_metrics[strategy]
+        # Also remove from strategy_names if you use it later
+        if strategy in strategy_names:
+            strategy_names.remove(strategy)
+
+
+    def red(text):
+        return f"\033[91m{text}\033[0m"
+
+    if strategies_to_remove:
+        print(red(f"\nWarning: Removed strategies due to insufficient data points: {strategies_to_remove}"))
     
     # Correction function for timeout handling
     print("\nApplying timeout correction...")
@@ -310,7 +345,7 @@ def main():
         success_rate = 0
         # Fill in corrected values
         for id, rid in enumerate(all_rids):
-            if rid.startswith("err"): # time out
+            if rid.startswith("err"): # time out or other err codes
                 for metric in ['ttft', 'tpot', 'inference_time', 'total_time']:
                     assert all_metrics[strategy][metric][id] == -1
                     corrected_metrics[metric].append(max_values[metric])
@@ -446,6 +481,7 @@ def main():
         #plot_comparative_cdf(metric_data, strategy_names, plot_title, info['xlabel'], output_files)
         plot_comparative_cdf_zoom_in(metric_data, strategy_names, plot_title, info['xlabel'], output_files)
 
+    print(red(f"warning: this errcode is too high! should ignore these {report_errs}"))
 
 if __name__ == "__main__":
     main()
