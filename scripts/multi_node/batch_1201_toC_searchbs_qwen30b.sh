@@ -14,10 +14,10 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(5.5)
+SCALING_FACTORS=(5.0)
 
 # Define batch sizes to test
-BATCH_SIZES=(1024)
+BATCH_SIZES=(8192)
 
 REMOTE_IPS="172.27.21.64"
 USE_REMOTE=True # True
@@ -36,10 +36,19 @@ SSH_PORT=10022
 #POLICIES=("dynamo-deterministic" "least-wait-token-random" "least-wait-token-bs" "bailian-impl-lwl-00" "bailian-impl-lwl-01" "bailian-impl-lwl-02" "bailian-impl-lwl-03" "bailian-impl-lwl-04" "bailian-impl-lwl-05" "bailian-impl-lwl-06" "bailian-impl-lwl-07" "bailian-impl-lwl-08" "bailian-impl-lwl-09" "bailian-impl-lwl-10")
 #POLICIES=("bailian-impl-06" "dynamo-deterministic" "least-wait-token-bs")
 #POLICIES=("bailian-tuple" "llumnix-tuple" "bailian-impl-06" "llumnix-linear-04")
-# 22x30min = 11h; Actual: 9.77h
+# 20x30min = 10h;
+# 4 * 3  / 2 = 6h;
 POLICIES=(
-    "least-wait-token-bs-linear-deterministic-05"
+    "join-shortest-q-weight"
+    "bailian-impl-06"
+    "dynamo-deterministic"
+    "least-wait-token-mul-bs"
 )
+# "least-wait-token-mul-bs-sample"
+
+#"llmd-impl-q"
+# "poly-serve-impl-q"
+# "slo-serve-impl-q"
 #POLICIES=("least-wait-token-q" "least-wait-token-random" "llmd-impl-q")
 #POLICIES=("dynamo-deterministic" "least-wait-token-gated-bs" "least-wait-token-bs")
 # TODO, new ttft+bs policy
@@ -96,8 +105,8 @@ echo "Template generation completed successfully."
 echo "Phase 2: Running experiments for each batch size, scaling factor, and policy..."
 
 for bs in ${BATCH_SIZES[@]}; do
-    for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1130_toC_linear_r$run_id"
+    for run_id in 2; do  # Run 3 times: r1, r2, r3
+        TAG="batch${bs}_u0.9_flashinfer_1201_toC_searchbs_qwen30b_r$run_id"
         
         if [[ "$USE_REMOTE" == "True" ]]; then
             BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_openmpfix.toml"
@@ -147,7 +156,7 @@ for bs in ${BATCH_SIZES[@]}; do
                     mkdir -p "$OUTPUT_DIR"
                     
                     # Run the experiment using bailian_dash2.sh
-                    if "$SCRIPT_DIR/bailian_dash.sh" \
+                    if "$SCRIPT_DIR/bailian_dash_qwen30b.sh" \
                         --output-dir "$OUTPUT_DIR" \
                         --remote-output-dir "$REMOTE_OUTPUT_DIR" \
                         "$BACKEND_CFG" \
@@ -173,27 +182,6 @@ for bs in ${BATCH_SIZES[@]}; do
                 fi
             done
             
-            # Move directories to NFS after completing all policies for this batch size and scaling factor
-            # echo "Moving TMP DIR to NFS for batch size $bs, scaling factor $sf"
-            # mv $SF_DIR $STORE_OUTPUT_BASE
-            # ssh -p "$SSH_PORT" "$REMOTE_IPS" "mv '${REMOTE_SF_DIR}' '${STORE_REMOTE_OUTPUT_BASE}'"
-            # echo "Moving TMP DIR to NFS for batch size $bs, scaling factor $sf"
-            # if [[ "$SF_DIR" != /tmp/* ]] || [[ ! -d "$SF_DIR" ]]; then
-            #     echo "ERROR: SF_DIR ('$SF_DIR') is not a valid directory under /tmp/" >&2
-            #     exit 1
-            # fi
-            # if [[ "$REMOTE_SF_DIR" != /tmp/* ]]; then
-            #     echo "ERROR: REMOTE_SF_DIR ('$REMOTE_SF_DIR') is not under /tmp/" >&2
-            #     exit 1
-            # fi
-            # rsync -av "$SF_DIR" "$STORE_OUTPUT_BASE/" && rm -rf "$SF_DIR"
-            # ssh -p "$SSH_PORT" "$REMOTE_IPS" "
-            #     if [[ '$REMOTE_SF_DIR' != /tmp/* ]] || [[ ! -d '$REMOTE_SF_DIR' ]]; then
-            #         echo 'ERROR: Remote REMOTE_SF_DIR is not a valid directory under /tmp/' >&2
-            #         exit 1
-            #     fi
-            #     rsync -av '$REMOTE_SF_DIR' '$STORE_REMOTE_OUTPUT_BASE/' && rm -rf '$REMOTE_SF_DIR'
-            # "
             echo "Moving TMP DIR to NFS for batch size $bs, scaling factor $sf"
             if [[ "$SF_DIR" != /tmp/* ]] || [[ ! -d "$SF_DIR" ]]; then
                 echo "ERROR: SF_DIR ('$SF_DIR') is not a valid directory under /tmp/" >&2
@@ -227,8 +215,8 @@ echo "All experiments completed."
 echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
-    for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1130_toC_linear_r$run_id"
+    for run_id in 2; do  # Run 3 times: r1, r2, r3
+        TAG="batch${bs}_u0.9_flashinfer_1201_toC_searchbs_qwen30b_r$run_id"
         
         for sf in ${SCALING_FACTORS[@]}; do
             echo "Generating plots for batch size: $bs, scaling factor: $sf"

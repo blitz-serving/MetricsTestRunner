@@ -1,13 +1,16 @@
 #!/bin/bash
 
 # 配置参数
-sc="5.0"
+sc="3.0"
 
 # moonckae
 # /mnt/debugger/hjb/node1/lmmetric-logs/5.0_batch1024_u0.9_flashinfer_1126_predictions_lasttry_r1/20251126205103_join-shortest-q-ttft
-
-tag="flashinfer_1126_predictions_lasttry_r1"
-policies=("join-shortest-q-ttft")  # ← 在这里添加你的策略列表
+# 
+# 
+suffix="sc${sc}-coder-bs1024-u0.9"
+tag="flashinfer_1129_coder_try_r1"
+# "join-shortest-q-weight"  "bailian-impl-06" 
+policies=("dynamo-deterministic" "least-wait-token-mul-bs")  # ← 在这里添加你的策略列表
 
 base_src="/mnt/debugger/hjb/node1/lmmetric-logs/${sc}_batch1024_u0.9_${tag}"
 
@@ -30,6 +33,7 @@ for policy in "${policies[@]}"; do
 
     latest_dir=$(printf '%s\n' "${valid_dirs[@]}" | sort -r | head -n1)
     dirname=$(basename "$latest_dir")
+    dirname="${dirname}_${suffix}"
 
     dest_tar="/mnt/debugger/hjb/node1/xmetric-paper/data/${dirname}.tgz"
     mkdir -p "$(dirname "$dest_tar")"
