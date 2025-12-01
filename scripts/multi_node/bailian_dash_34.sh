@@ -26,27 +26,27 @@ MODEL_PATH='/home/admin/resource/model/464482ce.Qwen2.5-7B-Instruct/1.0/'
 REMOTE_MODEL_PATH='/home/admin/resource/model/464482ce.Qwen2.5-7B-Instruct/1.0/'
 
 # Python virtual environment path with vLLM installed
-VENV_PATH='/mnt/debugger/hjb/node1/yaullm/.venvflashinfer'
-REMOTE_VENV_PATH='/mnt/debugger/hjb/node2/yaullm/.venvflashinfer'
-# VENV_PATH='/mnt/debugger/hjb/node1/yaullm/.venv'
-# REMOTE_VENV_PATH='/mnt/debugger/hjb/node2/yaullm/.venv'
+VENV_PATH='/mnt/debugger/hjb/node3/yaullm/.venvflashinfer'
+REMOTE_VENV_PATH='/mnt/debugger/hjb/node4/yaullm/.venvflashinfer'
+# VENV_PATH='/mnt/debugger/hjb/node3/yaullm/.venv'
+# REMOTE_VENV_PATH='/mnt/debugger/hjb/node4/yaullm/.venv'
 
 # Project directory containing the blitz-infer-pack codebase
-WORK_DIR='/mnt/debugger/hjb/node1/blitz-infer-pack'
+WORK_DIR='/mnt/debugger/hjb/node3/blitz-infer-pack'
 
 # Flag to skip launching backend (useful for debugging)
 NO_BACKEND=false
 
 # Base directory for output logs
-OUTPUT_BASE="/tmp/node1/lmmetric-logs"
-REMOTE_OUTPUT_BASE="/tmp/node2/lmmetric-logs"
-STORE_OUTPUT_BASE="/mnt/debugger/hjb/node1/lmmetric-logs"
-STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node2/lmmetric-logs"
+OUTPUT_BASE="/tmp/node3/lmmetric-logs"
+REMOTE_OUTPUT_BASE="/tmp/node4/lmmetric-logs"
+STORE_OUTPUT_BASE="/mnt/debugger/hjb/node3/lmmetric-logs"
+STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node4/lmmetric-logs"
 
 # Directory containing dataset files for client requests
-DATASET_DIR="/mnt/debugger/hjb/node1/qwen-bailian-usagetraces-anon"
+DATASET_DIR="/mnt/debugger/hjb/node3/qwen-bailian-usagetraces-anon"
 
-REMOTE_IPS="172.27.21.162"
+REMOTE_IPS="172.27.21.155"
 USE_REMOTE=True # True
 SSH_PORT=10022
 

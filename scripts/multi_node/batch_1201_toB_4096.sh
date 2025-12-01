@@ -14,12 +14,12 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(5.0)
+SCALING_FACTORS=(5.5)
 
 # Define batch sizes to test
 BATCH_SIZES=(4096)
 
-REMOTE_IPS="172.27.21.64"
+REMOTE_IPS="172.27.21.155"
 USE_REMOTE=True # True
 
 SSH_PORT=10022
@@ -39,10 +39,11 @@ SSH_PORT=10022
 # 20x30min = 10h;
 # 4 * 3  / 2 = 6h;
 POLICIES=(
-    # "join-shortest-q-weight"
-    # "bailian-impl-06"
-    # "dynamo-deterministic"
+    "join-shortest-q-weight"
+    "bailian-impl-06"
+    "dynamo-deterministic"
     "least-wait-token-mul-bs"
+    "join-shortest-q-ttft"
 )
 # "least-wait-token-mul-bs-sample"
 
@@ -59,16 +60,15 @@ POLICIES=(
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="$SCRIPT_DIR/../../config/dash-h20-1"
 SIM_CONFIG_DIR="$SCRIPT_DIR/../../config/ipads-h20-1"
-OUTPUT_BASE="/tmp/node1/lmmetric-logs"
-REMOTE_OUTPUT_BASE="/tmp/node2/lmmetric-logs"
-STORE_OUTPUT_BASE="/mnt/debugger/hjb/node1/lmmetric-logs"
-STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node2/lmmetric-logs"
+OUTPUT_BASE="/tmp/node3/lmmetric-logs"
+REMOTE_OUTPUT_BASE="/tmp/node4/lmmetric-logs"
+STORE_OUTPUT_BASE="/mnt/debugger/hjb/node3/lmmetric-logs"
+STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node4/lmmetric-logs"
 
 
 # Configuration files
 
 #ROUTER_CFG="$CONFIG_DIR/vllm_router.toml"
-ROUTER_CFG="$CONFIG_DIR/vllm_router_new_fullargs.toml"
 CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients.toml"
 #CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb.toml" # TraceB
 # -----------------------------------------------------------------------------
@@ -102,111 +102,112 @@ echo "Template generation completed successfully."
 # Phase 2: Running Experiments
 # -----------------------------------------------------------------------------
 
-# echo "Phase 2: Running experiments for each batch size, scaling factor, and policy..."
+echo "Phase 2: Running experiments for each batch size, scaling factor, and policy..."
 
-# for bs in ${BATCH_SIZES[@]}; do
-#     for run_id in 1; do  # Run 3 times: r1, r2, r3
-#         TAG="batch${bs}_u0.9_flashinfer_1201_toC_searchbs_qwen30b_r$run_id"
+for bs in ${BATCH_SIZES[@]}; do
+    ROUTER_CFG="$CONFIG_DIR/vllm_router_new_fullargs_${bs}.toml"
+    for run_id in 1; do  # Run 3 times: r1, r2, r3
+        TAG="batch${bs}_u0.9_flashinfer_1201_toB_qwen7b_r$run_id"
         
-#         if [[ "$USE_REMOTE" == "True" ]]; then
-#             BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_openmpfix.toml"
-#         else
-#             BACKEND_CFG="$CONFIG_DIR/launch_vllm_8instances_b${bs}_openmpfix.toml"
-#         fi
+        if [[ "$USE_REMOTE" == "True" ]]; then
+            BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_openmpfix_34.toml"
+        else
+            BACKEND_CFG="$CONFIG_DIR/launch_vllm_8instances_b${bs}_openmpfix_34.toml"
+        fi
 
-#         # if [[ "$USE_REMOTE" == "True" ]]; then
-#         #     BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}.toml"
-#         # else
-#         #     BACKEND_CFG="$CONFIG_DIR/launch_vllm_8instances_b${bs}.toml"
-#         # fi
+        # if [[ "$USE_REMOTE" == "True" ]]; then
+        #     BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}.toml"
+        # else
+        #     BACKEND_CFG="$CONFIG_DIR/launch_vllm_8instances_b${bs}.toml"
+        # fi
 
-#         for sf in ${SCALING_FACTORS[@]}; do
-#             echo "Processing batch size: $bs, scaling factor: $sf"
+        for sf in ${SCALING_FACTORS[@]}; do
+            echo "Processing batch size: $bs, scaling factor: $sf"
             
-#             # Create directory for this batch size and scaling factor
-#             SF_DIR="$OUTPUT_BASE/${sf}_${TAG}"
-#             REMOTE_SF_DIR="$REMOTE_OUTPUT_BASE/${sf}_${TAG}"
-#             mkdir -p "$SF_DIR"
+            # Create directory for this batch size and scaling factor
+            SF_DIR="$OUTPUT_BASE/${sf}_${TAG}"
+            REMOTE_SF_DIR="$REMOTE_OUTPUT_BASE/${sf}_${TAG}"
+            mkdir -p "$SF_DIR"
             
-#             # Get the generated config file for this scaling factor
-#             CLIENT_CFG="$GENERATED_CONFIGS_DIR/bailian_clients_sf${sf}.toml"
+            # Get the generated config file for this scaling factor
+            CLIENT_CFG="$GENERATED_CONFIGS_DIR/bailian_clients_sf${sf}.toml"
         
-#             if [ ! -f "$CLIENT_CFG" ]; then
-#                 echo "Error: Client config file not found for scaling factor $sf"
-#                 continue
-#             fi
+            if [ ! -f "$CLIENT_CFG" ]; then
+                echo "Error: Client config file not found for scaling factor $sf"
+                continue
+            fi
         
-#             # Run experiments for each policy with retry logic
-#             for policy in ${POLICIES[@]}; do
-#                 echo "Running experiment for policy: $policy"
+            # Run experiments for each policy with retry logic
+            for policy in ${POLICIES[@]}; do
+                echo "Running experiment for policy: $policy"
                 
-#                 max_retries=5
-#                 retry_count=0
-#                 succeeded=false
+                max_retries=5
+                retry_count=0
+                succeeded=false
                 
-#                 while [ $retry_count -lt $max_retries ]; do
-#                     echo "Attempt $(($retry_count + 1))/$max_retries for batch size $bs, scaling factor '$sf', policy '$policy'..."
+                while [ $retry_count -lt $max_retries ]; do
+                    echo "Attempt $(($retry_count + 1))/$max_retries for batch size $bs, scaling factor '$sf', policy '$policy'..."
                     
-#                     # Generate timestamp
-#                     TIMESTAMP=$(date +%Y%m%d%H%M%S)
+                    # Generate timestamp
+                    TIMESTAMP=$(date +%Y%m%d%H%M%S)
                     
-#                     # Create output directory for this experiment
-#                     OUTPUT_DIR="$SF_DIR/${TIMESTAMP}_${policy}"
-#                     REMOTE_OUTPUT_DIR="$REMOTE_SF_DIR/${TIMESTAMP}_${policy}"
-#                     mkdir -p "$OUTPUT_DIR"
+                    # Create output directory for this experiment
+                    OUTPUT_DIR="$SF_DIR/${TIMESTAMP}_${policy}"
+                    REMOTE_OUTPUT_DIR="$REMOTE_SF_DIR/${TIMESTAMP}_${policy}"
+                    mkdir -p "$OUTPUT_DIR"
                     
-#                     # Run the experiment using bailian_dash2.sh
-#                     if "$SCRIPT_DIR/bailian_dash_qwen30b.sh" \
-#                         --output-dir "$OUTPUT_DIR" \
-#                         --remote-output-dir "$REMOTE_OUTPUT_DIR" \
-#                         "$BACKEND_CFG" \
-#                         "$ROUTER_CFG" \
-#                         "$CLIENT_CFG" \
-#                         "$policy"; then
-#                         echo "✅ Experiment completed successfully for batch size $bs, scaling factor $sf, policy $policy"
-#                         succeeded=true
-#                         break
-#                     else
-#                         exit_code=$?
-#                         echo "❌ Experiment failed for batch size $bs, scaling factor $sf, policy $policy with exit code $exit_code"
-#                         retry_count=$((retry_count + 1))
-#                         if [ $retry_count -lt $max_retries ]; then
-#                             echo "⏳ Retrying in 15 seconds..."
-#                             sleep 15
-#                         fi
-#                     fi
-#                 done
+                    # Run the experiment using bailian_dash2.sh
+                    if "$SCRIPT_DIR/bailian_dash_34.sh" \
+                        --output-dir "$OUTPUT_DIR" \
+                        --remote-output-dir "$REMOTE_OUTPUT_DIR" \
+                        "$BACKEND_CFG" \
+                        "$ROUTER_CFG" \
+                        "$CLIENT_CFG" \
+                        "$policy"; then
+                        echo "✅ Experiment completed successfully for batch size $bs, scaling factor $sf, policy $policy"
+                        succeeded=true
+                        break
+                    else
+                        exit_code=$?
+                        echo "❌ Experiment failed for batch size $bs, scaling factor $sf, policy $policy with exit code $exit_code"
+                        retry_count=$((retry_count + 1))
+                        if [ $retry_count -lt $max_retries ]; then
+                            echo "⏳ Retrying in 15 seconds..."
+                            sleep 15
+                        fi
+                    fi
+                done
                 
-#                 if [ "$succeeded" = false ]; then
-#                     echo "💥 Experiment failed after $max_retries attempts for batch size $bs, scaling factor $sf, policy $policy"
-#                 fi
-#             done
+                if [ "$succeeded" = false ]; then
+                    echo "💥 Experiment failed after $max_retries attempts for batch size $bs, scaling factor $sf, policy $policy"
+                fi
+            done
             
-#             echo "Moving TMP DIR to NFS for batch size $bs, scaling factor $sf"
-#             if [[ "$SF_DIR" != /tmp/* ]] || [[ ! -d "$SF_DIR" ]]; then
-#                 echo "ERROR: SF_DIR ('$SF_DIR') is not a valid directory under /tmp/" >&2
-#                 exit 1
-#             fi
-#             rsync -av "$SF_DIR" "$STORE_OUTPUT_BASE/" && rm -rf "$SF_DIR"
-#             # Only sync remote if USE_REMOTE is True
-#             if [[ "$USE_REMOTE" == "True" ]]; then
-#                 if [[ "$REMOTE_SF_DIR" != /tmp/* ]]; then
-#                     echo "ERROR: REMOTE_SF_DIR ('$REMOTE_SF_DIR') is not under /tmp/" >&2
-#                     exit 1
-#                 fi
-#                 ssh -p "$SSH_PORT" "$REMOTE_IPS" "
-#                     if [[ '$REMOTE_SF_DIR' != /tmp/* ]] || [[ ! -d '$REMOTE_SF_DIR' ]]; then
-#                         echo 'ERROR: Remote REMOTE_SF_DIR is not a valid directory under /tmp/' >&2
-#                         exit 1
-#                     fi
-#                     rsync -av '$REMOTE_SF_DIR' '$STORE_REMOTE_OUTPUT_BASE/' && rm -rf '$REMOTE_SF_DIR'
-#                 "
-#             fi
-#         done
-#     done
-# done
+            echo "Moving TMP DIR to NFS for batch size $bs, scaling factor $sf"
+            if [[ "$SF_DIR" != /tmp/* ]] || [[ ! -d "$SF_DIR" ]]; then
+                echo "ERROR: SF_DIR ('$SF_DIR') is not a valid directory under /tmp/" >&2
+                exit 1
+            fi
+            rsync -av "$SF_DIR" "$STORE_OUTPUT_BASE/" && rm -rf "$SF_DIR"
+            # Only sync remote if USE_REMOTE is True
+            if [[ "$USE_REMOTE" == "True" ]]; then
+                if [[ "$REMOTE_SF_DIR" != /tmp/* ]]; then
+                    echo "ERROR: REMOTE_SF_DIR ('$REMOTE_SF_DIR') is not under /tmp/" >&2
+                    exit 1
+                fi
+                ssh -p "$SSH_PORT" "$REMOTE_IPS" "
+                    if [[ '$REMOTE_SF_DIR' != /tmp/* ]] || [[ ! -d '$REMOTE_SF_DIR' ]]; then
+                        echo 'ERROR: Remote REMOTE_SF_DIR is not a valid directory under /tmp/' >&2
+                        exit 1
+                    fi
+                    rsync -av '$REMOTE_SF_DIR' '$STORE_REMOTE_OUTPUT_BASE/' && rm -rf '$REMOTE_SF_DIR'
+                "
+            fi
+        done
+    done
+done
 
-# echo "All experiments completed."
+echo "All experiments completed."
 
 # -----------------------------------------------------------------------------
 # Phase 3: Plotting Results
@@ -216,7 +217,7 @@ echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1201_toC_searchbs_qwen30b_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1201_toB_qwen7b_r$run_id"
         
         for sf in ${SCALING_FACTORS[@]}; do
             echo "Generating plots for batch size: $bs, scaling factor: $sf"

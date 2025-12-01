@@ -41,7 +41,7 @@ vllm_executable = "${venv-path}/bin/vllm serve"
 remote_vllm_executable = "${remote-venv-path}/bin/vllm serve"
 base_vllm_port = 60180
 remote_base_vllm_port = 59180
-remote_ips = ["172.27.21.162"]
+remote_ips = ["172.27.21.155"]
 remote_ssh_port = 10022
 remote_output_dir = "${remote-output-dir}"
 output_dir = "${output-dir}"
@@ -56,7 +56,7 @@ gpu_memory_utilization = 0.9
 executable = ["${vllm_executable}"]
 extra_args = [
     "${model_path}",
-    "--max-num-batched-tokens", "1024",
+    "--max-num-batched-tokens", "4096",
     "--port", "${port}",
     "--gpu-memory-utilization", "${gpu_memory_utilization}",
     "> ${log_file} 2>&1"
@@ -66,7 +66,7 @@ extra_args = [
 executable = ["${remote_vllm_executable}"]
 extra_args = [
     "${remote_model_path}",
-    "--max-num-batched-tokens", "1024",
+    "--max-num-batched-tokens", "4096",
     "--port", "${port}",
     "--gpu-memory-utilization", "${gpu_memory_utilization}",
     "> ${log_file} 2>&1"

@@ -46,7 +46,7 @@ STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node2/lmmetric-logs"
 # Directory containing dataset files for client requests
 DATASET_DIR="/mnt/debugger/hjb/node1/qwen-bailian-usagetraces-anon"
 
-REMOTE_IPS="172.27.21.64"
+REMOTE_IPS="172.27.21.162"
 USE_REMOTE=True # True
 SSH_PORT=10022
 
