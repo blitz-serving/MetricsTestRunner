@@ -240,7 +240,7 @@ setup_output_directory() {
 wait_for_vllm_startup() {
     echo "Start to Waiting local vLLM..."
     local remote_dir="$OUTPUT_DIR"
-    local max_wait_sec=300 # 4 minutes + 1min for load flashinfer
+    local max_wait_sec=600 # 7 mins
     local elapsed=0
     local check_interval=5
 
@@ -263,6 +263,18 @@ wait_for_vllm_startup() {
             for logfile in "$remote_dir"/vllm*.log; do
                 if [ ! -f "$logfile" ]; then
                     continue
+                fi
+
+                # Check for RuntimeError
+                if grep -q "^RuntimeError:" "$logfile" 2>/dev/null; then
+                    echo "ERROR: RuntimeError detected in $logfile." >&2
+                    return 1
+                fi
+
+                # Check for RuntimeError
+                if grep -q "^OSError:" "$logfile" 2>/dev/null; then
+                    echo "ERROR: OSError: detected in $logfile." >&2
+                    return 1
                 fi
 
                 expected="INFO:     Application startup complete."
@@ -290,7 +302,7 @@ wait_for_vllm_startup() {
 wait_for_remote_vllm_startup() {
     echo "Start to Waiting remote vLLM..."
     local remote_dir="$REMOTE_OUTPUT_DIR"
-    local max_wait_sec=30 # the remote vllm should already started up
+    local max_wait_sec=100 # the remote vllm should already started up
     local elapsed=0
     local check_interval=5
 
@@ -325,6 +337,20 @@ wait_for_remote_vllm_startup() {
 
             # Check each log file on the remote machine
             for remote_logfile in $remote_log_check; do
+                # Check for RuntimeError
+                local runtime_error=$(ssh "-p ${SSH_PORT}" "$ip" "grep -q '^RuntimeError:' '$remote_logfile' && echo 'found' 2>/dev/null" 2>/dev/null)
+                if [ "$runtime_error" = "found" ]; then
+                    echo "ERROR: RuntimeError detected in $remote_logfile on $ip." >&2
+                    return 1
+                fi
+
+                # Check for RuntimeError
+                local runtime_error=$(ssh "-p ${SSH_PORT}" "$ip" "grep -q '^OSError: ' '$remote_logfile' && echo 'found' 2>/dev/null" 2>/dev/null)
+                if [ "$runtime_error" = "found" ]; then
+                    echo "ERROR: OSError: [Errno 98] detected in $remote_logfile on $ip." >&2
+                    return 1
+                fi
+
                 local expected="INFO:     Application startup complete."
                 local found=$(ssh "-p ${SSH_PORT}" "$ip" "grep -F '$expected' '$remote_logfile' 2>/dev/null" 2>/dev/null)
                 
