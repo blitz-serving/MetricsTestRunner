@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(5.5)
+SCALING_FACTORS=(5.0)
 
 # Define batch sizes to test
 BATCH_SIZES=(4096)
@@ -40,10 +40,10 @@ SSH_PORT=10022
 # 4 * 3  / 2 = 6h;
 POLICIES=(
     "join-shortest-q-weight"
-    "bailian-impl-06"
-    "dynamo-deterministic"
-    "least-wait-token-mul-bs"
-    "join-shortest-q-ttft"
+    # "bailian-impl-06"
+    # "dynamo-deterministic"
+    # "least-wait-token-mul-bs"
+    # "join-shortest-q-ttft"
 )
 # "least-wait-token-mul-bs-sample"
 
@@ -69,8 +69,8 @@ STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node4/lmmetric-logs"
 # Configuration files
 
 #ROUTER_CFG="$CONFIG_DIR/vllm_router.toml"
-CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients.toml"
-#CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb.toml" # TraceB
+#CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients.toml"
+CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb.toml" # TraceB
 # -----------------------------------------------------------------------------
 # Phase 1: Template Generation
 # -----------------------------------------------------------------------------
