@@ -272,8 +272,8 @@ wait_for_vllm_startup() {
                 fi
 
                 # Check for RuntimeError
-                if grep -q "^OSError: [Errno 98]" "$logfile" 2>/dev/null; then
-                    echo "ERROR: OSError: [Errno 98] detected in $logfile." >&2
+                if grep -q "^OSError:" "$logfile" 2>/dev/null; then
+                    echo "ERROR: OSError: detected in $logfile." >&2
                     return 1
                 fi
 
@@ -345,7 +345,7 @@ wait_for_remote_vllm_startup() {
                 fi
 
                 # Check for RuntimeError
-                local runtime_error=$(ssh "-p ${SSH_PORT}" "$ip" "grep -q '^OSError: [Errno 98]' '$remote_logfile' && echo 'found' 2>/dev/null" 2>/dev/null)
+                local runtime_error=$(ssh "-p ${SSH_PORT}" "$ip" "grep -q '^OSError: ' '$remote_logfile' && echo 'found' 2>/dev/null" 2>/dev/null)
                 if [ "$runtime_error" = "found" ]; then
                     echo "ERROR: OSError: [Errno 98] detected in $remote_logfile on $ip." >&2
                     return 1
