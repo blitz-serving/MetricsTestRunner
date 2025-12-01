@@ -184,11 +184,11 @@ build_project_components() {
     
     # Build router_v2 with specified features
     if [ "$VERBOSE" = true ]; then
-        cargo build -p router_v2  --features "$features"
-        cargo build -p router_v2  --release --features  "$features"
+        #cargo build -p router_v2  --features "$features"
+        RUSTFLAGS="-Awarnings" cargo build -p router_v2  --release --features  "$features"
     else
-        cargo build -p router_v2  --features "$features" --quiet
-        cargo build -p router_v2  --release --features "$features" --quiet
+        #cargo build -p router_v2  --features "$features" --quiet
+        RUSTFLAGS="-Awarnings" cargo build -p router_v2  --release --features "$features" --quiet
     fi
     if [ $? -ne 0 ]; then
         echo "Error: Failed to build router_v2."
@@ -197,11 +197,11 @@ build_project_components() {
     
     # Build request simulator client
     if [ "$VERBOSE" = true ]; then
-        cargo build -p request-sim --bin client  -j64
-        cargo build -p request-sim --release --bin client -j64
+        #cargo build -p request-sim --bin client  -j64
+        RUSTFLAGS="-Awarnings" cargo build -p request-sim --release --bin client -j64
     else
-        cargo build -p request-sim --bin client -j64 --quiet
-        cargo build -p request-sim --release --bin client -j64 --quiet
+        #cargo build -p request-sim --bin client -j64 --quiet
+        RUSTFLAGS="-Awarnings" cargo build -p request-sim --release --bin client -j64 --quiet
     fi
     if [ $? -ne 0 ]; then
         echo "Error: Failed to build request-sim client."
