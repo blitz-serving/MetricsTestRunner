@@ -47,3 +47,5 @@ model_csv/attn_decode_c6e85db6_training_predictions.csv filter=lfs diff=lfs merg
 model_csv/attn_kv_cache_save_c6e85db6_predictions.csv filter=lfs diff=lfs merge=lfs -text
 model_csv/attn_pre_proj_c6e85db6_predictions.csv filter=lfs diff=lfs merge=lfs -text
 model_csv/add_9f4b3b9a_predictions.csv filter=lfs diff=lfs merge=lfs -text
+model_csv/attn_decode_c6e85db6_predictions.csv filter=lfs diff=lfs merge=lfs -text
+model_csv/attn_prefill_c6e85db6_predictions.csv filter=lfs diff=lfs merge=lfs -text
