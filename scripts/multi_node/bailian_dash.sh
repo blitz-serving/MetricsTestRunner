@@ -521,6 +521,7 @@ cleanup_processes() {
     trap - INT TERM
     echo "Cleaning up processes..."
     kill_processes_by_pattern "$VENV_PATH/bin/vllm" "vLLM"
+    kill_processes_by_pattern "$VENV_PATH/bin/python3 -s" "Dead Python"
     kill_processes_by_pattern "router_v2" "router"
     kill_processes_by_pattern "smart_runner.py" "smart runner"
     kill_processes_by_pattern "$WORK_DIR/target/release/client" "previous client"
@@ -528,6 +529,7 @@ cleanup_processes() {
     # Clean up remote processes ONLY if USE_REMOTE is True
     if [[ "$USE_REMOTE" == "True" ]] && [ -n "$REMOTE_IPS" ] && [ -n "$REMOTE_VENV_PATH" ]; then
         kill_remote_processes_by_pattern "$REMOTE_VENV_PATH/bin/vllm" "remote vLLM" "$REMOTE_IPS" "$REMOTE_VENV_PATH"
+        kill_remote_processes_by_pattern "$REMOTE_VENV_PATH/bin/python3 -s" "Dead Python" "$REMOTE_IPS" "$REMOTE_VENV_PATH"
     fi
     
     sleep 5
@@ -663,14 +665,8 @@ setup_output_directory "$OUTPUT_DIR" "$CONFIG1" "$CONFIG2" "$CONFIG3" "$FEATURES
 
 # Kill any previous processes
 echo "Cleaning up previous processes..."
-kill_processes_by_pattern "$VENV_PATH/bin/vllm" "previous vLLM"
-kill_processes_by_pattern "router_v2" "previous router"
-kill_processes_by_pattern "$WORK_DIR/target/release/client" "previous client"
-if [[ "$USE_REMOTE" == "True" ]]; then
-    kill_remote_processes_by_pattern "$REMOTE_VENV_PATH/bin/vllm" "remote vLLM" "$REMOTE_IPS" "$REMOTE_VENV_PATH"
-fi
-
-sleep 10
+# Cleanup processes
+cleanup_processes
 
 # Clean up previous tmux session
 cleanup_tmux_session "$SESSION_NAME"
