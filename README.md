@@ -237,3 +237,10 @@ Define new application templates in configuration files:
 executable = ["new_executable"]
 extra_args = ["--arg1", "value1"]
 ```
+
+### csv
+在MetricTestRunner仓库h20_config分支，model_csv目录下面有所有算子的表
+1. 前缀为attn_prefill attn_decode为prefill和decode的预测，feature较为不同
+2. 其余的都以token_num(这一批里面token数，decode=1，prefill=chunk_size)为feature
+3. 前几列是feature，后一列是latency，单位为毫秒
+4. 除samplre和schedule之外的kernel，都是单层的时间，对于整个model_forward的贡献需要乘以num_layer (28 in qwen2.5)
