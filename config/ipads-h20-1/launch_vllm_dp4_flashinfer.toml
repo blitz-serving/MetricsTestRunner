@@ -2,14 +2,14 @@
 # ========== 启动配置 ==========
 [runtime.raw]
 config = [
-    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "0", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_ATTENTION_BACKEND = "FLASHINFER" }, background = true, base_port = 59190, port_offset = 0 },
-    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "1", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_ATTENTION_BACKEND = "FLASHINFER" }, background = true, base_port = 59190, port_offset = 1 },
-    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "2", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_ATTENTION_BACKEND = "FLASHINFER" }, background = true, base_port = 59190, port_offset = 2 },
-    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "3", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_ATTENTION_BACKEND = "FLASHINFER" }, background = false, base_port = 59190, port_offset = 3 },
-    # { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "4", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42 }, background = true, base_port = 59190, port_offset = 4 },
-    # { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "5", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42 }, background = true, base_port = 59190, port_offset = 5 },
-    # { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "6", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42 }, background = true, base_port = 59190, port_offset = 6 },
-    # { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "7", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42 }, background = false, base_port = 59190, port_offset = 7 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "0", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, base_port = 59190, port_offset = 0 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "1", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, base_port = 59190, port_offset = 1 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "2", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, base_port = 59190, port_offset = 2 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "3", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, base_port = 59190, port_offset = 3 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "4", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, base_port = 59190, port_offset = 4 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "5", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, base_port = 59190, port_offset = 5 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "6", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, base_port = 59190, port_offset = 6 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "7", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = false, base_port = 59190, port_offset = 7 },
 ]
 
 # ======= Shared variables ========
@@ -39,8 +39,8 @@ extra_args = [
     "1024",
     "--port",
     "${port}",
-    "--enforce-eager",
-    "--gpu-memory-utilization",
-    "0.5",
+    # "--enforce-eager",
+    # "--gpu-memory-utilization",
+    # "0.5",
     "> ${log_file} 2>&1",
 ]
