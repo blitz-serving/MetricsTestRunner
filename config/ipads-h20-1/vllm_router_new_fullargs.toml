@@ -26,7 +26,7 @@ online_refine = false
 
 # ========== 路由器配置（不变）==========
 [app.router]
-executable = ["${blitzdir}/target/debug/router_v2"]
+executable = ["${blitzdir}/target/release/router_v2"]
 extra_args = ["--use-tokenizer"]
 
 [app.router.macro_rules]
@@ -71,15 +71,12 @@ extra_args = ["--use-tokenizer"]
 "--num-blocks" = "num_blocks"
 "--num-layers" = "num_layers"
 "--num-attention-heads" = "num_attention_heads"
-"--post-attn-norm" = "post_attn_norm"
 "--attention-prefill-batching-overhead-fraction" = "attn_prefill_overhead"
 "--attention-decode-batching-overhead-fraction" = "attn_decode_overhead"
 "--model-hash" = "model_hash"
 "--predict-cache-path-prefix" = "predict_cache_path_prefix"
 "--kv-cache-prediction-granularity" = "kv_cache_prediction_granularity"
 "--flops-prediction-granularity" = "flops_prediction_granularity"
-"--online-refine" = "online_refine"
-
 [app.router.config]
 hostname = "localhost"
 port = "58009"
@@ -117,16 +114,14 @@ mbpt = 19999
 learning_rate = 0.00002
 trained_type = "linear-regression"
 
-token-budget = "$token_budget"
-block-size = 16
-num-blocks = "$num_blocks"
+token_budget = 4096
+block_size = 16
+num_blocks = 80860
 num_layers = 28
 num_attention_heads = 28
-post_attn_norm = true
 attn_prefill_overhead = 0.1
 attn_decode_overhead = 0.4
-model_hash = "$model_hash"
-predict_cache_path_prefix = "$predict_cache_path_prefix"
-kv_cache_prediction_granularity = 64
+model_hash = "dcd79310"
+predict_cache_path_prefix = "/nvme/zkx/MetricsTestRunner/model_csv/"
+kv_cache_prediction_granularity = 128
 flops_prediction_granularity = 1024
-online_refine = "$online_refine"
