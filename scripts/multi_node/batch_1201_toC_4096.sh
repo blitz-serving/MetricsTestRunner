@@ -44,6 +44,7 @@ POLICIES=(
     # "dynamo-deterministic"
     # "least-wait-token-mul-bs"
     "join-shortest-q-ttft"
+    "llmd-impl-q"
 )
 # "least-wait-token-mul-bs-sample"
 

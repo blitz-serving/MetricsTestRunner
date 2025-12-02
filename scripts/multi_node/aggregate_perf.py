@@ -4,25 +4,26 @@ import csv
 import argparse
 
 # ✅ 硬编码：只分析以下策略
+# ✅ 硬编码：只分析以下策略
 TARGET_POLICIES = {
-    "least-wait-token-gated-bs",
-    "least-wait-token-bs",
+    # "least-wait-token-gated-bs",
+    # "least-wait-token-bs",
     "dynamo-deterministic",
     "bailian-impl-06",
-    "join-shortest-q-tuple",
+    # "join-shortest-q-tuple",
     "join-shortest-q-weight",
-    "least-wait-token-random",
-    "round-robin-q",
-    "least-bs-random",
-    "llumnix-linear-04",
+    # "least-wait-token-random",
+    # "round-robin-q",
+    # "least-bs-random",
+    # "llumnix-linear-04",
     "least-wait-token-mul-bs",
-    "least-wait-token-mul-tbt",
-    "least-wait-token-total-mul-bs",
-    "least-wait-token-mul-bs-sample",
-    "least-wait-token-mul-bs-bs",
+    # "least-wait-token-mul-tbt",
+    # "least-wait-token-total-mul-bs",
+    # "least-wait-token-mul-bs-sample",
+    # "least-wait-token-mul-bs-bs",
     #"least-ttft-bs-tuple",
-    # "join-shortest-q-ttft",
-    # "llmd-impl-q",
+    "join-shortest-q-ttft",
+    "llmd-impl-q",
     # "slo-serve-impl-q",
     # "poly-serve-q"
 }

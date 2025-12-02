@@ -14,17 +14,20 @@ def generate_config(template_content, scale_factor):
     # Replace the scale_factor value in the [app.client_toC] section
     lines = template_content.split('\n')
     new_lines = []
-    in_client_section = False
     
     for line in lines:
-        if line.strip() == '[app.client_toC]' or line.strip() == '[app.client_thinking]' or line.strip() == '[app.client_toB]' or line.strip() == '[app.client_coder]':
-            in_client_section = True
-            new_lines.append(line)
-        elif in_client_section and line.strip().startswith('config.scale_factor ='):
+        if line.strip().startswith('config.scale_factor ='):
             new_lines.append(f'config.scale_factor = {scale_factor}')
-            in_client_section = False  # Reset after modifying scale_factor
         else:
             new_lines.append(line)
+        # if line.strip() == '[app.client_toC]' or line.strip() == '[app.client_thinking]' or line.strip() == '[app.client_toB]' or line.strip() == '[app.client_coder]':
+        #     in_client_section = True
+        #     new_lines.append(line)
+        # elif in_client_section and line.strip().startswith('config.scale_factor ='):
+        #     new_lines.append(f'config.scale_factor = {scale_factor}')
+        #     in_client_section = False  # Reset after modifying scale_factor
+        # else:
+        #     new_lines.append(line)
     
     return '\n'.join(new_lines)
 
