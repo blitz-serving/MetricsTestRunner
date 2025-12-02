@@ -15,7 +15,7 @@
 
 # Define scaling factors to search over
 # 6h
-SCALING_FACTORS=(3.0 3.5 4.0)
+SCALING_FACTORS=(3.0)
 
 # Define batch sizes to test
 BATCH_SIZES=(4096)
