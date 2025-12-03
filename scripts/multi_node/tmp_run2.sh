@@ -1,17 +1,10 @@
 #!/bin/bash
 # run on 3 and 4
 
-# sleep 3h..
-sleep 10800
+./batch_1203_mooncake_conv_tune_bailian_qwen30b.sh
 
-# 4h
-./batch_1201_toC_30b_4096.sh
+./batch_1203_coder_scaling_factor_test.sh
 
-# 2h
-./batch_1201_coder_30b_4096.sh
-
-# 2h
-./batch_1201_toB_30b_4096.sh
 
 
 

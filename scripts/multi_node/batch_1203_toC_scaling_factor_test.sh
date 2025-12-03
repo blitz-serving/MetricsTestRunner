@@ -15,7 +15,7 @@
 
 # Define scaling factors to search over
 # 2.5 x 4 = 5h
-SCALING_FACTORS=(6.3 6.6 6.9)
+SCALING_FACTORS=(5.6 5.7 5.8)
 
 # Define batch sizes to test
 BATCH_SIZES=(4096)
