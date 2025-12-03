@@ -1,18 +1,23 @@
 #!/bin/bash
 
 # 配置参数
-sc="3.0"
-
+sc="2.0"
+bs="4096"
 # moonckae
 # /mnt/debugger/hjb/node1/lmmetric-logs/5.0_batch1024_u0.9_flashinfer_1126_predictions_lasttry_r1/20251126205103_join-shortest-q-ttft
 # 
-# 
-suffix="sc${sc}-coder-bs1024-u0.9"
-tag="flashinfer_1129_coder_try_r1"
-# "join-shortest-q-weight"  "bailian-impl-06" 
-policies=("dynamo-deterministic" "least-wait-token-mul-bs")  # ← 在这里添加你的策略列表
+# /mnt/debugger/hjb/node1/lmmetric-logs/3.0_batch4096_u0.9_flashinfer_1201_coder_qwen7b_r1
+# /mnt/debugger/hjb/node1/lmmetric-logs/1.5_batch4096_u0.9_flashinfer_1202_mooncake_conv_qwen7b_r1
+# /mnt/debugger/hjb/node1/lmmetric-logs/1.0_batch4096_u0.9_flashinfer_1202_mooncake_tool_qwen7b_r1
+# /mnt/debugger/hjb/node3/lmmetric-logs/5.0_batch4096_u0.9_flashinfer_1201_toB_qwen30b_r1
+# /mnt/debugger/hjb/node3/lmmetric-logs/2.0_batch4096_u0.9_flashinfer_1201_coder_qwen30b_r1
+suffix="sc${sc}-coder-bs${bs}-u0.9-qwen30b"
 
-base_src="/mnt/debugger/hjb/node1/lmmetric-logs/${sc}_batch1024_u0.9_${tag}"
+tag="flashinfer_1201_coder_qwen30b_r1"
+# "join-shortest-q-weight"  "bailian-impl-06" 
+policies=("dynamo-deterministic" "join-shortest-q-ttft" "least-wait-token-mul-bs" "join-shortest-q-weight" "bailian-impl-06" )  # ← 在这里添加你的策略列表
+
+base_src="/mnt/debugger/hjb/node3/lmmetric-logs/${sc}_batch${bs}_u0.9_${tag}"
 
 # 遍历每个策略
 for policy in "${policies[@]}"; do
