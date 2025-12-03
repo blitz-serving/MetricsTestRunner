@@ -63,11 +63,11 @@ remote_model_path = "${remote-model-path}"
 remote_tokenizer_path = "${remote-model-path}/tokenizer.json"
 vllm_executable = "${venv-path}/bin/vllm serve"
 remote_vllm_executable = "${remote-venv-path}/bin/vllm serve"
-base_vllm_port = 60180
-remote_base_vllm_port = 59180
+base_vllm_port = 60180 # local vllm ports
+remote_base_vllm_ports = [59180, 59180, 59180] # remote vllm ports
 remote_ips = ["172.27.21.162","172.27.21.163","172.27.21.155"]
 remote_ssh_port = 10022
-remote_output_dir = "${remote-output-dir}"
+remote_output_dir = "${remote-output-dir}" # a list 
 output_dir = "${output-dir}"
 gpu_memory_utilization = 0.9
 

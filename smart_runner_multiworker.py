@@ -252,7 +252,7 @@ def gen_ssh_cmd(app_cmd: str,
         ssh_index = 0
 
     # Get remote IPs from variables
-    remote_ips = variables.get("remote_ips", [])
+    remote_ips = variables.get("remote-ips", [])
     if not remote_ips or ssh_index >= len(remote_ips):
         raise ValueError(f"No remote IP found for SSH index {ssh_index} in {remote_ips}")
     
@@ -286,7 +286,7 @@ def gen_ssh_cmd(app_cmd: str,
         stubs.append(f"http://{remote_host}:{port}")
         
         # Get remote output directory for this specific machine
-        remote_output_dirs = variables.get("remote_output_dir", [])
+        remote_output_dirs = variables.get("remote-output-dir", [])
         if not remote_output_dirs or ssh_index >= len(remote_output_dirs):
             raise ValueError(f"No remote output directory found for SSH index {ssh_index}")
         
@@ -364,6 +364,44 @@ def block_until_keyword(proc: subprocess.Popen, keyword: str):
         pass
 
 
+import ast
+
+def select_app_config(app_general, index_id):
+    # Step 1: 处理 executable
+    exec_single_str = app_general['executable'][0]  # "['a','b','c']/bin/vllm serve"
+    
+    # 找到第一个 ']' 的位置（因为列表结束后立即是 /bin/...）
+    try:
+        bracket_end = exec_single_str.index(']') + 1
+    except ValueError:
+        raise ValueError("Invalid format in executable: missing ']'")
+    
+    list_part = exec_single_str[:bracket_end]      # "['a','b','c']"
+    suffix = exec_single_str[bracket_end:]         # "/bin/vllm serve"
+    
+    base_exec_paths = ast.literal_eval(list_part)
+    
+    if not (0 <= index_id < len(base_exec_paths)):
+        raise IndexError(f"index_id {index_id} out of range for {len(base_exec_paths)} nodes")
+    
+    selected_exec = base_exec_paths[index_id] + suffix  # e.g. '/mnt/.../.venvflashinfer/bin/vllm serve'
+
+    # Step 2: 处理 extra_args 中的模型路径（第一个元素是模型路径列表字符串）
+    model_list_str = app_general['extra_args'][0]
+    model_paths = ast.literal_eval(model_list_str)
+    selected_model = model_paths[index_id]
+
+    # Step 3: 合并其余参数
+    other_args = app_general['extra_args'][1:]
+
+    res = {
+        "executable": [selected_exec],
+        "extra_args": [selected_model, *other_args]
+    }
+
+    return res
+
+
 def run_apps(rt: str, rt_config: dict, app_config: dict, variables: dict):
     # Store the original runtime name for SSH indexing
     rt_config_with_name = rt_config.copy()
@@ -386,41 +424,48 @@ def run_apps(rt: str, rt_config: dict, app_config: dict, variables: dict):
             if output_dir:
                 print(f"Creating local directory: {output_dir}")
                 os.makedirs(output_dir, exist_ok=True)
+
+            print(f"[before process macro] {app_general=} {app_self_cfg=}")
+            app_cmd = process_macro(app_name, app_general, app_self_cfg)
+            print(f"[after process macro] {app_cmd=}\n")
+
         else:
             # For other runtimes (e.g., ssh), create directories remotely
-            remote_output_dirs = variables.get("remote_output_dir", [])
+            remote_output_dirs = variables.get("remote-output-dir", [])
+
+            # Extract SSH index from runtime name (e.g., "ssh_1" -> 1)
+            if "_" in rt:
+                ssh_index = int(rt.split("_")[1])
+            else:
+                ssh_index = 0
             
-            if remote_output_dirs:
-                # Extract SSH index from runtime name (e.g., "ssh_1" -> 1)
-                if "_" in rt:
-                    ssh_index = int(rt.split("_")[1])
-                else:
-                    ssh_index = 0
-                
-                if ssh_index >= len(remote_output_dirs):
-                    raise ValueError(f"No remote output directory found for SSH index {ssh_index}")
-                
-                remote_output_dir = remote_output_dirs[ssh_index]
-                
-                # Get remote IPs from variables
-                remote_ips = variables.get("remote_ips", [])
-                if not remote_ips or ssh_index >= len(remote_ips):
-                    raise ValueError(f"No remote IP found for SSH index {ssh_index}")
-                
-                remote_host = remote_ips[ssh_index]
-                remote_user = variables.get("remote_user", "root")
-                remote_ssh_port = variables.get("remote_ssh_port", 22)
+            if ssh_index >= len(remote_output_dirs):
+                raise ValueError(f"No remote output directory found for SSH index {ssh_index}")
+            
+            remote_output_dir = remote_output_dirs[ssh_index]
+            
+            # Get remote IPs from variables
+            remote_ips = variables.get("remote_ips", [])
+            if not remote_ips or ssh_index >= len(remote_ips):
+                raise ValueError(f"No remote IP found for SSH index {ssh_index}")
+            
+            remote_host = remote_ips[ssh_index]
+            remote_user = variables.get("remote_user", "root")
+            remote_ssh_port = variables.get("remote_ssh_port", 22)
 
-                # Create remote directory using SSH
-                print(f"Creating remote directory: {remote_output_dir} on {remote_host}")
-                ssh_cmd = f'ssh -p {remote_ssh_port} "{remote_user}@{remote_host}" "mkdir -p {remote_output_dir}"'
-                result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
-                if result.returncode != 0:
-                    print(f"Warning: Failed to create remote directory on {remote_host}: {result.stderr.strip()}")
-                    # Try to continue anyway
-
-        app_cmd = process_macro(app_name, app_general, app_self_cfg)
-        print(f"[after process macro] {app_cmd=}\n")
+            # Create remote directory using SSH
+            print(f"Creating remote directory: {remote_output_dir} on {remote_host}")
+            ssh_cmd = f'ssh -p {remote_ssh_port} "{remote_user}@{remote_host}" "mkdir -p {remote_output_dir}"'
+            result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"Warning: Failed to create remote directory on {remote_host}: {result.stderr.strip()}")
+                # Try to continue anyway
+        
+            print(f"[before process macro] {app_general=} {app_self_cfg=}")
+            app_general = select_app_config(app_general, ssh_index)
+            print(f"[after selecting] {app_general=}")
+            app_cmd = process_macro(app_name, app_general, app_self_cfg)
+            print(f"[after process macro] {app_cmd=}\n")
 
         rt_func = rt_registry.get(rt.split("_")[0])  # Get base runtime type (e.g., "ssh" from "ssh_1")
         if not rt_func:
@@ -476,6 +521,9 @@ def parse_comma_separated_list(arg_value: str) -> List[str]:
 
 
 def main():
+
+    print("Raw sys.argv:", sys.argv)
+    
     parser = argparse.ArgumentParser(description="Run apps from TOML config")
     parser.add_argument("--toml", required=True, help="Path to TOML file")
     # use global kv to replace placeholder..
@@ -487,7 +535,7 @@ def main():
         if arg.startswith("--") and "=" in arg:
             key, value = arg[2:].split("=", 1)
             # Handle list arguments
-            if key in ["remote_ips", "remote_output_dir", "remote_model_path", "remote_venv_path"]:
+            if key in ["remote-ips", "remote-output-dir", "remote-model-path", "remote-venv-path"]:
                 # Split by spaces for these specific keys
                 global_kv[key] = parse_list_argument(value)
             else:
@@ -500,7 +548,7 @@ def main():
 
     try:
         config, variables = load_toml_config(args.toml, global_kv)
-        print(f"after load and parse vars, {config=}, {variables=} \n")
+        # print(f"after load and parse vars, {config=}, {variables=} \n")
         # clear stubs file when starting vllm
         work_dir = variables.get("work-dir", "")
         if work_dir and ("vllm_template" in config["app"] or "vllm_remote_template" in config["app"]):
@@ -527,6 +575,7 @@ def main():
             
         # Run all apps in all runtimes
         for rt_name, rt_config in check_and_get_runtime(config):
+            # print(f"Config app: {config["app"]}")
             run_apps(rt=rt_name, rt_config=rt_config, app_config=config["app"], variables=variables)
             
     except ValueError as e:

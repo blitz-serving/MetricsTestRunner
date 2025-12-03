@@ -119,7 +119,7 @@ sync_remote_to_storage() {
             fi
             
             echo '  🔄 Starting rsync for $remote_sf_dir...'
-            rsync -av '$remote_sf_dir/' '$store_remote_output_base/' && rm -rf '$remote_sf_dir'
+            rsync -av '$remote_sf_dir' '$store_remote_output_base/' && rm -rf '$remote_sf_dir'
             echo '  ✅ Successfully synced and cleaned $remote_sf_dir'
         "
         
@@ -147,6 +147,23 @@ get_remote_output_dirs_str() {
     done
     
     echo "${remote_dirs[@]}"
+}
+
+# Function to output remote output dirs as separate words (for array capture)
+get_remote_output_dirs() {
+    local sf="$1"
+    local tag="$2"
+    local timestamp="$3"
+    local policy="$4"
+    
+    local remote_dirs=()
+    for i in "${!REMOTE_IPS[@]}"; do
+        remote_output_base="${REMOTE_OUTPUT_BASES[$i]}"
+        remote_dirs+=("${remote_output_base}/${sf}_${tag}/${timestamp}_${policy}")
+    done
+    
+    # Output each element as a separate word
+    printf '%s\n' "${remote_dirs[@]}"
 }
 
 # -----------------------------------------------------------------------------
@@ -190,9 +207,11 @@ for bs in ${BATCH_SIZES[@]}; do
         TAG="batch${bs}_u0.9_flashinfer_1202_SCALE_r$run_id"
         
         if [[ "$USE_REMOTE" == "True" ]]; then
-            BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_openmpfix.toml"
+            BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_4instances.toml"
         else
-            BACKEND_CFG="$CONFIG_DIR/launch_vllm_8instances_b${bs}_openmpfix.toml"
+            echo "This should not happen"
+            exit 1
+            BACKEND_CFG="$CONFIG_DIR/launch_vllm_8instances_b${bs}_4instances.toml"
         fi
 
         for sf in ${SCALING_FACTORS[@]}; do
@@ -230,12 +249,22 @@ for bs in ${BATCH_SIZES[@]}; do
                     
                     # Get remote output directories as string
                     REMOTE_OUTPUT_DIRS_STR=$(get_remote_output_dirs_str "$sf" "$TAG" "$TIMESTAMP" "$policy")
-                    
+                    REMOTE_IPS_STR="${REMOTE_IPS[@]}"  # 
+
+                    echo "Calling with:"
+                    echo "BACKEND_CFG=$BACKEND_CFG"
+                    echo "ROUTER_CFG=$ROUTER_CFG"
+                    echo "CLIENT_CFG=$CLIENT_CFG"
+                    echo "policy=$policy"
+                    echo "REMOTE_IPS: ${REMOTE_IPS_STR}"
+                    echo "REMOTE_OUTPUT_DIRS_STR: $REMOTE_OUTPUT_DIRS_STR"
+                    echo "\n\n"
+
                     # Run the experiment using bailian_dash_qwen30b.sh with multiple remote dirs
                     if "$SCRIPT_DIR/bailian_4instances.sh" \
                         --output-dir "$OUTPUT_DIR" \
                         --remote-output-dir "$REMOTE_OUTPUT_DIRS_STR" \
-                        --remote-ips "${REMOTE_IPS[@]}" \
+                        --remote-ips "$REMOTE_IPS_STR" \
                         "$BACKEND_CFG" \
                         "$ROUTER_CFG" \
                         "$CLIENT_CFG" \
@@ -267,7 +296,7 @@ for bs in ${BATCH_SIZES[@]}; do
             
             # Sync local directory to storage
             echo "📤 Syncing local directory: $SF_DIR to $STORE_OUTPUT_BASE/"
-            if rsync -av "$SF_DIR/" "$STORE_OUTPUT_BASE/" && rm -rf "$SF_DIR"; then
+            if rsync -av "$SF_DIR" "$STORE_OUTPUT_BASE/" && rm -rf "$SF_DIR"; then
                 echo "✅ Local directory synced successfully"
             else
                 echo "❌ Failed to sync local directory" >&2

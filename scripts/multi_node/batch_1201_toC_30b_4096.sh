@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(5.0 5.5)
+SCALING_FACTORS=(6.0)
 
 # Define batch sizes to test
 BATCH_SIZES=(4096)
@@ -43,6 +43,7 @@ POLICIES=(
     "bailian-impl-06"
     "dynamo-deterministic"
     "least-wait-token-mul-bs"
+    "least-wait-token-mul-bs-fix"
     # "join-shortest-q-ttft"
 )
 # "least-wait-token-mul-bs-sample"

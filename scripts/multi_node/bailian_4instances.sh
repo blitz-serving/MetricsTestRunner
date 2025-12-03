@@ -24,7 +24,8 @@
 # -----------------------------------------------------------------------------
 
 # Model path - directory containing the LLM model files
-MODEL_PATH='/mnt/debugger/hjb/models/Qwen3-30B-A3B/'
+# This is for all 4 machines
+MODEL_PATH='/home/admin/resource/model/464482ce.Qwen2.5-7B-Instruct/1.0/'
 #REMOTE_MODEL_PATHS will be derived from REMOTE_IPS
 
 # Python virtual environment path with vLLM installed
@@ -79,7 +80,6 @@ REMOTE_OUTPUT_DIRS=()  # Will be set based on REMOTE_IPS or command line args
 # Print usage information
 print_usage() {
     echo "Usage: $0 [--no-backend] [--work-dir DIR] [--venv-path PATH] [--remote-output-dir DIR1 DIR2...] [--remote-ips IP1 IP2...] [-v] <backend-cfg> <router-cfg> <client-cfg> <policy>"
-    echo "  policy must be one of: least-work-q, round-robin-q, join-shortest-q"
     echo ""
     echo "Options:"
     echo "  --no-backend          Skip launching vLLM backend processes"
@@ -126,17 +126,23 @@ setup_remote_paths() {
         
         # Derive paths based on IP or use defaults
         case "$remote_ip" in
-            "172.27.21.64")
-                REMOTE_MODEL_PATHS+=("/mnt/debugger/hjb/models/Qwen3-30B-A3B/")
+            "172.27.21.162")
+                REMOTE_MODEL_PATHS+=("${MODEL_PATH}")
                 REMOTE_VENV_PATHS+=("/mnt/debugger/hjb/node2/yaullm/.venvflashinfer")
                 REMOTE_OUTPUT_BASES+=("/tmp/node2/lmmetric-logs")
                 STORE_REMOTE_OUTPUT_BASES+=("/mnt/debugger/hjb/node2/lmmetric-logs")
                 ;;
-            "172.27.21.65")
-                REMOTE_MODEL_PATHS+=("/mnt/debugger/hjb/models/Qwen3-30B-A3B/")
+            "172.27.21.163")
+                REMOTE_MODEL_PATHS+=("${MODEL_PATH}")
                 REMOTE_VENV_PATHS+=("/mnt/debugger/hjb/node3/yaullm/.venvflashinfer")
                 REMOTE_OUTPUT_BASES+=("/tmp/node3/lmmetric-logs")
                 STORE_REMOTE_OUTPUT_BASES+=("/mnt/debugger/hjb/node3/lmmetric-logs")
+                ;;
+            "172.27.21.155")
+                REMOTE_MODEL_PATHS+=("${MODEL_PATH}")
+                REMOTE_VENV_PATHS+=("/mnt/debugger/hjb/node4/yaullm/.venvflashinfer")
+                REMOTE_OUTPUT_BASES+=("/tmp/node4/lmmetric-logs")
+                STORE_REMOTE_OUTPUT_BASES+=("/mnt/debugger/hjb/node4/lmmetric-logs")
                 ;;
             *)
                 echo "⚠️  FATAL: unknown remote IP: $remote_ip"
@@ -301,16 +307,15 @@ setup_remote_output_directories() {
             exit 1
         fi
         
-        REMOTE_OUTPUT_DIRS+=("$remote_output_dir")
     done
     
     echo "✅ Remote output directories set up successfully"
 }
 
 wait_for_vllm_startup() {
-    echo "🔄 Waiting for local vLLM startup..."
+    echo "Start to Waiting local vLLM..."
     local remote_dir="$OUTPUT_DIR"
-    local max_wait_sec=420 # 7 mins
+    local max_wait_sec=600 # 7 mins
     local elapsed=0
     local check_interval=5
 
@@ -341,6 +346,12 @@ wait_for_vllm_startup() {
                     return 1
                 fi
 
+                # Check for RuntimeError
+                if grep -q "^OSError:" "$logfile" 2>/dev/null; then
+                    echo "ERROR: OSError: detected in $logfile." >&2
+                    return 1
+                fi
+
                 expected="INFO:     Application startup complete."
                 if ! grep -Fq "$expected" "$logfile" 2>/dev/null; then
                     echo "Waiting for $logfile to complete startup..."
@@ -351,7 +362,7 @@ wait_for_vllm_startup() {
         fi
 
         if [ "$all_ready" = true ]; then
-            echo "✅ All local vllm*.log files indicate startup complete."
+            echo "All vllm*.log files indicate startup complete."
             return 0
         fi
 
@@ -364,104 +375,80 @@ wait_for_vllm_startup() {
 }
 
 wait_for_remote_vllm_startup() {
-    echo "🔄 Waiting for remote vLLM startup on all machines..."
-    local max_wait_sec=300 # 5 mins
+    echo "Start to Waiting remote vLLM..."
+    local max_wait_sec=100
     local elapsed=0
-    local check_interval=10
-    
-    # Check if we have remote machines to monitor
-    if [ ${#REMOTE_IPS[@]} -eq 0 ]; then
-        echo "⚠️  No remote machines to monitor. Skipping remote vLLM startup check."
-        return 0
+    local check_interval=5
+
+    if [ -z "$REMOTE_OUTPUT_DIRS" ]; then
+        echo "ERROR: REMOTE_OUTPUT_DIRS is not set." >&2
+        return 1
     fi
-    
+
+    if [ -z "$REMOTE_IPS" ]; then
+        echo "ERROR: REMOTE_IPS is not set." >&2
+        return 1
+    fi
+
+    IFS=',' read -ra IPS <<< "$REMOTE_IPS"
+    IFS=',' read -ra DIRS <<< "$REMOTE_OUTPUT_DIRS"
+
+    if [ "${#IPS[@]}" -ne "${#DIRS[@]}" ]; then
+        echo "ERROR: Number of REMOTE_IPS (${#IPS[@]}) does not match REMOTE_OUTPUT_DIRS (${#DIRS[@]})." >&2
+        return 1
+    fi
+
+    elapsed=0
     while [ $elapsed -lt $max_wait_sec ]; do
         local all_ready=true
-        local ready_count=0
-        local total_count=${#REMOTE_IPS[@]}
-        
-        # Check each remote machine
-        for i in "${!REMOTE_IPS[@]}"; do
-            remote_ip="${REMOTE_IPS[$i]}"
-            remote_output_dir="${REMOTE_OUTPUT_DIRS[$i]}"
-            
-            echo "  🔍 Checking vLLM startup on $remote_ip (dir: $remote_output_dir)..."
-            
-            # Check if remote log files exist and have startup messages
-            local startup_complete=$(ssh "-p${SSH_PORT}" "$remote_ip" "
-                if [ ! -d '$remote_output_dir' ]; then
-                    echo 'not_found'
-                    exit 0
-                fi
-                
-                # Check for any vllm log files
-                log_files=\$(ls '$remote_output_dir'/vllm*.log 2>/dev/null || echo '')
-                if [ -z \"\$log_files\" ]; then
-                    echo 'no_logs'
-                    exit 0
-                fi
-                
-                # Check each log file for startup completion
-                all_started=true
-                for logfile in \$log_files; do
-                    if grep -q '^RuntimeError:' \"\$logfile\" 2>/dev/null; then
-                        echo 'runtime_error'
-                        exit 0
-                    fi
-                    
-                    if ! grep -q 'INFO:     Application startup complete.' \"\$logfile\" 2>/dev/null; then
-                        all_started=false
-                        break
-                    fi
-                done
-                
-                if [ \"\$all_started\" = true ]; then
-                    echo 'complete'
-                else
-                    echo 'incomplete'
-                fi
-            ")
-            
-            case "$startup_complete" in
-                "complete")
-                    echo "  ✅ $remote_ip: vLLM startup complete"
-                    ready_count=$((ready_count + 1))
-                    ;;
-                "not_found")
-                    echo "  ⚠️  $remote_ip: Output directory not found"
-                    all_ready=false
-                    ;;
-                "no_logs")
-                    echo "  ⚠️  $remote_ip: No vLLM log files found"
-                    all_ready=false
-                    ;;
-                "runtime_error")
-                    echo "  ❌ $remote_ip: RuntimeError detected in vLLM logs"
+
+        for idx in "${!IPS[@]}"; do
+            local ip="${IPS[$idx]}"
+            local remote_dir="${DIRS[$idx]}"
+
+            # Check if remote log files exist in this directory on this IP
+            local remote_log_check
+            remote_log_check=$(ssh "-p ${SSH_PORT}" "$ip" "ls ${remote_dir}/vllm*.log 2>/dev/null" 2>/dev/null)
+
+            if [ -z "$remote_log_check" ]; then
+                echo "No vllm*.log files found in $remote_dir on $ip. Waiting..."
+                all_ready=false
+                break
+            fi
+
+            # Check each log file on the remote machine
+            for remote_logfile in $remote_log_check; do
+                # Check for RuntimeError
+                if ssh "-p ${SSH_PORT}" "$ip" "grep -q '^RuntimeError:' '$remote_logfile'" 2>/dev/null; then
+                    echo "ERROR: RuntimeError detected in $remote_logfile on $ip." >&2
                     return 1
-                    ;;
-                "incomplete")
-                    echo "  ⏳ $remote_ip: vLLM still starting up"
+                fi
+
+                # Check for OSError: [Errno 98] (Address already in use, etc.)
+                if ssh "-p ${SSH_PORT}" "$ip" "grep -q '^OSError: ' '$remote_logfile'" 2>/dev/null; then
+                    echo "ERROR: OSError detected in $remote_logfile on $ip." >&2
+                    return 1
+                fi
+
+                local expected="INFO:     Application startup complete."
+                if ! ssh "-p ${SSH_PORT}" "$ip" "grep -F '$expected' '$remote_logfile'" 2>/dev/null; then
+                    echo "Waiting for $remote_logfile on $ip to complete startup..."
                     all_ready=false
-                    ;;
-                *)
-                    echo "  ⚠️  $remote_ip: Unexpected status: $startup_complete"
-                    all_ready=false
-                    ;;
-            esac
+                    break 2  # Break out of both the logfile loop and the IP loop
+                fi
+            done
         done
-        
-        if [ "$all_ready" = true ] && [ $ready_count -eq $total_count ]; then
-            echo "✅ All remote vLLM instances started successfully!"
+
+        if [ "$all_ready" = true ]; then
+            echo "All remote vLLM instances indicate startup complete."
             return 0
         fi
-        
-        echo "⏳ Waiting... ($ready_count/$total_count machines ready)"
+
         sleep $check_interval
         elapsed=$((elapsed + check_interval))
     done
 
     echo "ERROR: Remote vLLM startup timeout after $max_wait_sec seconds." >&2
-    echo "Only $ready_count out of $total_count machines are ready."
     return 1
 }
 
@@ -506,8 +493,7 @@ launch_experiment_session() {
     if [ "$no_backend" = false ]; then
         echo "🚀 Launching vLLM backends and waiting ..."
         tmux new-window -t "$session_name" -n window1
-        tmux send-keys -t "$session_name:window1" "$tmux_cmd && python ../../smart_runner.py --toml $config1 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --remote-output-dir \"${REMOTE_OUTPUT_DIRS[@]}\" --remote-model-path \"${REMOTE_MODEL_PATHS[@]}\" --remote-venv-path \"${REMOTE_VENV_PATHS[@]}\" --remote-ips \"${REMOTE_IPS[@]}\" --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
-        
+        tmux send-keys -t "$session_name:window1" "$tmux_cmd && python ../../smart_runner_multiworker.py --toml $config1 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --remote-output-dir=\"${REMOTE_OUTPUT_DIRS[*]}\" --remote-model-path=\"${REMOTE_MODEL_PATHS[*]}\" --remote-venv-path=\"${REMOTE_VENV_PATHS[*]}\" --remote-ips=\"${REMOTE_IPS[*]}\" --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m        
         # Wait for local vLLM startup with timeout
         if ! wait_for_vllm_startup; then
             echo "❌ FATAL: Local vLLM failed to start in time. Aborting experiment." >&2
@@ -686,25 +672,17 @@ while [[ $# -gt 0 ]]; do
             shift
         ;;
         --remote-output-dir)
-            # Read all remaining arguments as remote output dirs until we hit another option or end
-            shift
-            REMOTE_OUTPUT_DIRS=()
-            while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^-- ]]; do
-                REMOTE_OUTPUT_DIRS+=("$1")
-                shift
-            done
+            # Parse a single comma-separated string into an array
+            IFS=' ' read -r -a REMOTE_OUTPUT_DIRS <<< "$2"
             USER_SPECIFIED_REMOTE_OUTPUT_DIR=true
-        ;;
+            shift 2
+            ;;
         --remote-ips)
-            # Read all remaining arguments as remote IPs until we hit another option or end
-            shift
-            REMOTE_IPS=()
-            while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^-- ]]; do
-                REMOTE_IPS+=("$1")
-                shift
-            done
+            # Parse a single comma-separated string into an array
+            IFS=' ' read -r -a REMOTE_IPS <<< "$2"
             USER_SPECIFIED_REMOTE_IPS=true
-        ;;
+            shift 2
+            ;;
         --output-dir)
             OUTPUT_DIR="$2"
             USER_SPECIFIED_OUTPUT_DIR=true
@@ -728,6 +706,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 set -- "${POSITIONAL_ARGS[@]}"
+
+
+echo "FINAL POSITIONAL ARGS COUNT: $#"
+echo "ARGS: $@"
 
 # Validate required arguments
 if [ "$#" -ne 4 ]; then
@@ -798,7 +780,7 @@ cleanup_processes
 post_process_results "$OUTPUT_DIR" "$WORK_DIR" "$VENV_PATH"
 
 # Sync remote results to storage
-sync_remote_results
+# sync_remote_results
 
 # Final message
 echo "🎉 Experiment completed successfully!"

@@ -54,6 +54,8 @@ def main(input_file):
             print(f"  {status}: {cnt}")
     print()
 
+    total_input_length = sum(t for t in success_data['input_length'])
+    total_output_length = sum(t for t in success_data['output_length'])
     # 统计并输出性能指标
     metrics = ['queue_time', 'avg_time_between_tokens', 'first_token_time', 'total_time', 'input_length', 'output_length']
     for metric in metrics:
@@ -77,6 +79,8 @@ def main(input_file):
         print(f"  p99:  {p99:.2f}")
         print(f"  min:  {mini:.2f}")
         print(f"  maxx:  {maxx:.2f}")
+
+    print(f"{total_input_length=} {total_output_length}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

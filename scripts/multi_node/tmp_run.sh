@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# sleep 3h..
-sleep 10800
+./batch_1202_mooncake_conv.sh
 
-./batch_1201_coder_4096.sh
+./batch_1202_mooncake_tool.sh
+
+
 
 
 

@@ -1,7 +1,5 @@
 Policy,TTFT,TPOT,Total,R_TTFT,R_TPOT,R_Total
-llmd-impl-q,455.91,24.43,19855.65,1.00,1.00,1.00
-join-shortest-q-weight,415.06,22.77,18885.28,1.10,1.07,1.05
-bailian-impl-06,430.33,21.25,17407.63,1.06,1.15,1.14
-dynamo-deterministic,383.80,21.01,16726.07,1.19,1.16,1.19
-join-shortest-q-ttft,283.15,19.59,15930.41,1.61,1.25,1.25
-least-wait-token-mul-bs,281.65,18.87,15763.22,1.62,1.29,1.26
+least-wait-token-mul-bs,2250.01,57.62,11376.61,1.00,1.00,1.00
+dynamo-deterministic,2044.80,47.06,10391.28,1.10,1.22,1.09
+bailian-impl-06,2511.64,44.71,8894.12,0.90,1.29,1.28
+join-shortest-q-weight,1830.44,34.18,8019.25,1.23,1.69,1.42

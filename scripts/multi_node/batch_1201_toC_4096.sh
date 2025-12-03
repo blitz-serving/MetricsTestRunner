@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(5.5)
+SCALING_FACTORS=(6.0)
 
 # Define batch sizes to test
 BATCH_SIZES=(4096)
@@ -39,10 +39,11 @@ SSH_PORT=10022
 # 20x30min = 10h;
 # 4 * 3  / 2 = 6h;
 POLICIES=(
-    # "join-shortest-q-weight"
-    # "bailian-impl-06"
-    # "dynamo-deterministic"
-    # "least-wait-token-mul-bs"
+    "join-shortest-q-weight"
+    "bailian-impl-06"
+    "dynamo-deterministic"
+    "least-wait-token-mul-bs"
+    "least-wait-token-mul-bs-fix"
     "join-shortest-q-ttft"
     "llmd-impl-q"
 )
