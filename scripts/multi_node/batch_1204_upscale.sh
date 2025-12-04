@@ -162,7 +162,7 @@ for bs in ${BATCH_SIZES[@]}; do
                     mkdir -p "$OUTPUT_DIR"
                     
                     # Run the experiment using bailian_dash2.sh
-                    if "$SCRIPT_DIR/bailian_dash_$MACHINE.sh" \
+                    if "$SCRIPT_DIR/bailian_dash_${MACHINE}_${MODEL}.sh" \
                         --output-dir "$OUTPUT_DIR" \
                         --remote-output-dir "$REMOTE_OUTPUT_DIR" \
                         "$BACKEND_CFG" \
