@@ -43,9 +43,11 @@ SSH_PORT=10022
 POLICIES=(
     "join-shortest-q-weight"
     "bailian-impl-06"
+    "bailian-impl-05-deterministic"
     "dynamo-deterministic"
     "least-wait-token-gated-bs"
-    # "join-shortest-q-ttft"
+    "least-wait-token-mul-bs"
+    "join-shortest-q-ttft"
     # "llmd-impl-q"
 )
 # "least-wait-token-mul-bs-sample"

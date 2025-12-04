@@ -17,9 +17,9 @@
 # 2.5 x 4 = 5h
 SCALING_FACTORS=(5.0)
 MODEL="qwen7b"
-MACHINE="34"
-NODE1="3"
-NODE2="4"
+MACHINE="12"
+NODE1="1"
+NODE2="2"
 
 # Define batch sizes to test
 BATCH_SIZES=(4096)
@@ -110,7 +110,7 @@ echo "Template generation completed successfully."
 echo "Phase 2: Running experiments for each batch size, scaling factor, and policy..."
 
 for bs in ${BATCH_SIZES[@]}; do
-    ROUTER_CFG="$CONFIG_DIR/vllm_router_new_fullargs_${bs}_${MACHINE}.toml"
+    ROUTER_CFG="$CONFIG_DIR/vllm_router_new_fullargs_${bs}_${MODEL}.toml"
     for run_id in 1; do  # Run 3 times: r1, r2, r3
         TAG="batch${bs}_u0.9_1204_flashattn_toC_qwen7b_r$run_id"
         
