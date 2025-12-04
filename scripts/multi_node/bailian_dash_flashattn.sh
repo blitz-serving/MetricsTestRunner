@@ -22,12 +22,12 @@
 # -----------------------------------------------------------------------------
 
 # Model path - directory containing the LLM model files
-MODEL_PATH='/mnt/debugger/hjb/models/Qwen3-30B-A3B/'
-REMOTE_MODEL_PATH='/mnt/debugger/hjb/models/Qwen3-30B-A3B/'
+MODEL_PATH='/home/admin/resource/model/464482ce.Qwen2.5-7B-Instruct/1.0/'
+REMOTE_MODEL_PATH='/home/admin/resource/model/464482ce.Qwen2.5-7B-Instruct/1.0/'
 
 # Python virtual environment path with vLLM installed
-VENV_PATH='/mnt/debugger/hjb/node1/yaullm/.venvflashinfer'
-REMOTE_VENV_PATH='/mnt/debugger/hjb/node2/yaullm/.venvflashinfer'
+VENV_PATH='/mnt/debugger/hjb/node1/yaullm/.venv'
+REMOTE_VENV_PATH='/mnt/debugger/hjb/node2/yaullm/.venv'
 # VENV_PATH='/mnt/debugger/hjb/node1/yaullm/.venv'
 # REMOTE_VENV_PATH='/mnt/debugger/hjb/node2/yaullm/.venv'
 
@@ -187,7 +187,7 @@ build_project_components() {
         #RUSTFLAGS="-Awarnings" cargo build -p router_v2  --features "$features"
         RUSTFLAGS="-Awarnings" cargo build -p router_v2  --release --features  "$features"
     else
-        #RUSTFLAGS="-Awarnings" cargo build -p router_v2  --features "$features" --quiet
+        #cargo build -p router_v2  --features "$features" --quiet
         RUSTFLAGS="-Awarnings" cargo build -p router_v2  --release --features "$features" --quiet
     fi
     if [ $? -ne 0 ]; then
@@ -197,10 +197,10 @@ build_project_components() {
     
     # Build request simulator client
     if [ "$VERBOSE" = true ]; then
-        #RUSTFLAGS="-Awarnings" cargo build -p request-sim --bin client  -j64
+        #cargo build -p request-sim --bin client  -j64
         RUSTFLAGS="-Awarnings" cargo build -p request-sim --release --bin client -j64
     else
-        #RUSTFLAGS="-Awarnings" cargo build -p request-sim --bin client -j64 --quiet
+        #cargo build -p request-sim --bin client -j64 --quiet
         RUSTFLAGS="-Awarnings" cargo build -p request-sim --release --bin client -j64 --quiet
     fi
     if [ $? -ne 0 ]; then
@@ -240,7 +240,7 @@ setup_output_directory() {
 wait_for_vllm_startup() {
     echo "Start to Waiting local vLLM..."
     local remote_dir="$OUTPUT_DIR"
-    local max_wait_sec=420 # 7 mins
+    local max_wait_sec=600 # 7 mins
     local elapsed=0
     local check_interval=5
 
@@ -273,7 +273,7 @@ wait_for_vllm_startup() {
 
                 # Check for RuntimeError
                 if grep -q "^OSError:" "$logfile" 2>/dev/null; then
-                    echo "ERROR: OSError: [Errno 98] detected in $logfile." >&2
+                    echo "ERROR: OSError: detected in $logfile." >&2
                     return 1
                 fi
 
@@ -345,7 +345,7 @@ wait_for_remote_vllm_startup() {
                 fi
 
                 # Check for RuntimeError
-                local runtime_error=$(ssh "-p ${SSH_PORT}" "$ip" "grep -q '^OSError:' '$remote_logfile' && echo 'found' 2>/dev/null" 2>/dev/null)
+                local runtime_error=$(ssh "-p ${SSH_PORT}" "$ip" "grep -q '^OSError: ' '$remote_logfile' && echo 'found' 2>/dev/null" 2>/dev/null)
                 if [ "$runtime_error" = "found" ]; then
                     echo "ERROR: OSError: [Errno 98] detected in $remote_logfile on $ip." >&2
                     return 1
@@ -374,6 +374,7 @@ wait_for_remote_vllm_startup() {
     echo "ERROR: Remote vLLM startup timeout after $max_wait_sec seconds." >&2
     return 1
 }
+
 
 # Launch tmux session with experiment components
 launch_experiment_session() {
@@ -533,6 +534,7 @@ cleanup_processes() {
     
     sleep 5
 }
+
 # -----------------------------------------------------------------------------
 # Main Script Execution
 # -----------------------------------------------------------------------------
@@ -662,7 +664,7 @@ fi
 setup_output_directory "$OUTPUT_DIR" "$CONFIG1" "$CONFIG2" "$CONFIG3" "$FEATURES" "$POLICY" "$WORK_DIR"
 
 # Kill any previous processes
-
+echo "Cleaning up previous processes..."
 # Cleanup processes
 cleanup_processes
 

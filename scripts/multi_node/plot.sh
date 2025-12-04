@@ -14,15 +14,17 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(1.0)
+SCALING_FACTORS=(5.0)
 
 # Define batch sizes to test
-BATCH_SIZES=(4096)
+BATCH_SIZES=(1024)
 
 REMOTE_IPS="172.27.21.162"
 USE_REMOTE=True # True
 
 SSH_PORT=10022
+# /mnt/debugger/hjb/node1/lmmetric-logs/5.0_batch1024_u0.9_1119_lwl_gated_param_r1
+# /mnt/debugger/hjb/node1/lmmetric-logs/5.6_batch4096_u0.9_flashinfer_1203_toC_scaling_30b_r1
 
 # Define policies to test
 # "bounded-most-hit-q" is debugging now
@@ -42,7 +44,7 @@ POLICIES=(
     "join-shortest-q-weight"
     "bailian-impl-06"
     "dynamo-deterministic"
-    "least-wait-token-mul-bs"
+    "least-wait-token-gated-bs"
     # "join-shortest-q-ttft"
     # "llmd-impl-q"
 )
@@ -61,42 +63,10 @@ POLICIES=(
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="$SCRIPT_DIR/../../config/dash-h20-1"
 SIM_CONFIG_DIR="$SCRIPT_DIR/../../config/ipads-h20-1"
-OUTPUT_BASE="/tmp/node3/lmmetric-logs"
-REMOTE_OUTPUT_BASE="/tmp/node4/lmmetric-logs"
-STORE_OUTPUT_BASE="/mnt/debugger/hjb/node3/lmmetric-logs"
-STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node4/lmmetric-logs"
-
-
-# Configuration files
-
-#ROUTER_CFG="$CONFIG_DIR/vllm_router.toml"
-CLIENT_TEMPLATE="$CONFIG_DIR/mooncake_tool.toml"
-#CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb.toml" # TraceB
-# -----------------------------------------------------------------------------
-# Phase 1: Template Generation
-# -----------------------------------------------------------------------------
-
-start=$SECONDS
-echo "Phase 1: Generating TOML templates with different scaling factors..."
-
-# Create directory for generated configs
-GENERATED_CONFIGS_DIR="$SCRIPT_DIR/generated_configs"
-# clean passed configs to prevent wrong running
-rm -r "$GENERATED_CONFIGS_DIR"
-mkdir -p "$GENERATED_CONFIGS_DIR"
-
-# Generate TOML files for each scaling factor using the Python script
-python3 "$SCRIPT_DIR/generate_toml_configs.py" \
-    --template "$CLIENT_TEMPLATE" \
-    --output-dir "$GENERATED_CONFIGS_DIR" \
-    --scale-factors ${SCALING_FACTORS[@]}
-
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to generate TOML configurations"
-    exit 1
-fi
-
-echo "Template generation completed successfully."
+OUTPUT_BASE="/tmp/node1/lmmetric-logs"
+REMOTE_OUTPUT_BASE="/tmp/node2/lmmetric-logs"
+STORE_OUTPUT_BASE="/mnt/debugger/hjb/node1/lmmetric-logs"
+STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node2/lmmetric-logs"
 
 # -----------------------------------------------------------------------------
 # Phase 3: Plotting Results
@@ -106,7 +76,7 @@ echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1202_mooncake_tool_qwen30b_r$run_id"
+        TAG="batch${bs}_u0.9_1119_lwl_gated_param_r$run_id"
         
         for sf in ${SCALING_FACTORS[@]}; do
             echo "Generating plots for batch size: $bs, scaling factor: $sf"
