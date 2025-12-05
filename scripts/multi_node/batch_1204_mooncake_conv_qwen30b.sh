@@ -48,7 +48,8 @@ POLICIES=(
     # "bailian-impl-06"
     # "dynamo-deterministic"
     # "least-wait-token-mul-bs"
-    "join-shortest-q-ttft"
+    "bailian-impl-05-deterministic"
+    #"join-shortest-q-ttft"
 )
 # "least-wait-token-mul-bs-sample"
 

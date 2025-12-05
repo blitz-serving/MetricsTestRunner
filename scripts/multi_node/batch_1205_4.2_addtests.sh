@@ -15,14 +15,14 @@
 
 # Define scaling factors to search over
 # Upcale 1.0 == 5.0
-SCALING_FACTORS=(1.2)
-MODEL="qwen30b"
+SCALING_FACTORS=(5.0)
+MODEL="qwen7b"
 MACHINE="34"
 NODE1="3"
 NODE2="4"
 
 # Define batch sizes to test
-BATCH_SIZES=(4096)
+BATCH_SIZES=(1024)
 
 REMOTE_IPS="172.27.21.155"
 USE_REMOTE=True # True
@@ -44,10 +44,10 @@ SSH_PORT=10022
 # 20x30min = 10h;
 # 2.5h;
 POLICIES=(
-    "join-shortest-q-weight"
-    "bailian-impl-06"
-    "dynamo-deterministic"
-    "least-wait-token-mul-bs-fix"
+    # "join-shortest-q-weight"
+    # "bailian-impl-06"
+    # "dynamo-deterministic"
+    # "least-wait-token-mul-bs-fix"
     "join-shortest-q-ttft"
 )
 # "least-wait-token-mul-bs-sample"
@@ -74,7 +74,7 @@ STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node${NODE2}/lmmetric-logs"
 # Configuration files
 
 #ROUTER_CFG="$CONFIG_DIR/vllm_router.toml"
-CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb_upscale.toml"
+CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients.toml"
 #CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb.toml" # TraceB
 # -----------------------------------------------------------------------------
 # Phase 1: Template Generation
@@ -112,7 +112,7 @@ echo "Phase 2: Running experiments for each batch size, scaling factor, and poli
 for bs in ${BATCH_SIZES[@]}; do
     ROUTER_CFG="$CONFIG_DIR/vllm_router_new_fullargs_${bs}_${MODEL}.toml"
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1205_upscaletoB_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1205_4.2_addtests_r$run_id"
         
         if [[ "$USE_REMOTE" == "True" ]]; then
             BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_openmpfix_${MACHINE}.toml"
@@ -222,7 +222,7 @@ echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1205_upscaletoB_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1205_4.2_addtests_r$run_id"
         
         for sf in ${SCALING_FACTORS[@]}; do
             echo "Generating plots for batch size: $bs, scaling factor: $sf"

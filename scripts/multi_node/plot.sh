@@ -14,15 +14,23 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(5.0)
+SCALING_FACTORS=(2.4)
+MACHINE="12"
+NODE1="1"
+NODE2="2"
 
 # Define batch sizes to test
-BATCH_SIZES=(1024)
+BATCH_SIZES=(4096)
 
-REMOTE_IPS="172.27.21.162"
 USE_REMOTE=True # True
 
 SSH_PORT=10022
+tag="flashinfer_1205_coder_scaling_qwen30b_r1"
+
+# /mnt/debugger/hjb/node1/lmmetric-logs/2.2_batch4096_u0.9_flashinfer_1205_coder_scaling_qwen30b_r1
+# /mnt/debugger/hjb/node1/lmmetric-logs/1.5_batch4096_u0.9_flashinfer_1202_mooncake_conv_qwen7b_r1
+# /mnt/debugger/hjb/node3/lmmetric-logs/1.0_batch4096_u0.9_flashinfer_1204_mooncake_tool_qwen30b_fix_timeout_length_r1
+#/mnt/debugger/hjb/node3/lmmetric-logs/1.5_batch4096_u0.9_flashinfer_1204_mooncake_conv_final_fix_qwen30b_r1
 # /mnt/debugger/hjb/node1/lmmetric-logs/5.0_batch1024_u0.9_1119_lwl_gated_param_r1
 # /mnt/debugger/hjb/node1/lmmetric-logs/5.6_batch4096_u0.9_flashinfer_1203_toC_scaling_30b_r1
 
@@ -43,9 +51,9 @@ SSH_PORT=10022
 POLICIES=(
     "join-shortest-q-weight"
     "bailian-impl-06"
-    "bailian-impl-05-deterministic"
+    #"bailian-impl-05-deterministic"
     "dynamo-deterministic"
-    "least-wait-token-gated-bs"
+    # "least-wait-token-gated-bs"
     "least-wait-token-mul-bs"
     "join-shortest-q-ttft"
     # "llmd-impl-q"
@@ -65,10 +73,10 @@ POLICIES=(
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="$SCRIPT_DIR/../../config/dash-h20-1"
 SIM_CONFIG_DIR="$SCRIPT_DIR/../../config/ipads-h20-1"
-OUTPUT_BASE="/tmp/node1/lmmetric-logs"
-REMOTE_OUTPUT_BASE="/tmp/node2/lmmetric-logs"
-STORE_OUTPUT_BASE="/mnt/debugger/hjb/node1/lmmetric-logs"
-STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node2/lmmetric-logs"
+OUTPUT_BASE="/tmp/node${NODE1}/lmmetric-logs"
+REMOTE_OUTPUT_BASE="/tmp/node${NODE2}/lmmetric-logs"
+STORE_OUTPUT_BASE="/mnt/debugger/hjb/node${NODE1}/lmmetric-logs"
+STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node${NODE2}/lmmetric-logs"
 
 # -----------------------------------------------------------------------------
 # Phase 3: Plotting Results
@@ -78,7 +86,7 @@ echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_1119_lwl_gated_param_r$run_id"
+        TAG="batch${bs}_u0.9_${tag}"
         
         for sf in ${SCALING_FACTORS[@]}; do
             echo "Generating plots for batch size: $bs, scaling factor: $sf"
