@@ -44,10 +44,10 @@ SSH_PORT=10022
 # 20x30min = 10h;
 # 2.5h;
 POLICIES=(
-    "join-shortest-q-weight"
-    "bailian-impl-06"
-    "dynamo-deterministic"
-    "least-wait-token-mul-bs"
+    # "join-shortest-q-weight"
+    # "bailian-impl-06"
+    # "dynamo-deterministic"
+    # "least-wait-token-mul-bs"
     "join-shortest-q-ttft"
 )
 # "least-wait-token-mul-bs-sample"

@@ -128,9 +128,11 @@ def process_macro(
 
     for cli_key, config_key in macro_rules.items():
         value = app_self_cfg.get(config_key, "")
-        if value is None or value == "":
-            value = "''"
-        args.append(f"{cli_key} {value}")
+        if value is None or value == "": # Not append
+            # value = "''"
+            args.append(f"{cli_key} ")
+        else:
+            args.append(f"{cli_key} {value}")
 
     executable = app_general["executable"]
     # print(f"exe {executable}")

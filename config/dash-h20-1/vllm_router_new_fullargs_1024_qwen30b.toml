@@ -85,6 +85,7 @@ extra_args = ["--use-tokenizer"]
 "--predict-cache-path-prefix" = "predict_cache_path_prefix"
 "--kv-cache-prediction-granularity" = "kv_cache_prediction_granularity"
 "--flops-prediction-granularity" = "flops_prediction_granularity"
+"--is-moe" = ""
 #"--online-refine" = "online_refine"
 
 [app.router.config]
@@ -126,16 +127,16 @@ trained_type = "linear-regression"
 
 token_budget = 1024
 block_size = 16
-num_blocks = 80860
-num_layers = 28
-num_attention_heads = 28
+num_blocks = 15683 # for qwen30b
+num_layers = 48
+num_attention_heads = 48
 post_attn_norm = true
 attn_prefill_overhead = 0.1
 attn_decode_overhead = 0.4
 #model_hash = "$model_hash"
-model_hash = "9f4b3b9a" # for qwen2.5-7b 1024
-predict_cache_path_prefix = "/mnt/debugger/hjb/node1/MetricsTestRunner/model_csv"
-kv_cache_prediction_granularity = 64
+model_hash = "cfdf769d" # for qwen30b cpsize 1k, 4k, 8k
+predict_cache_path_prefix = "/mnt/debugger/hjb/node3/MetricsTestRunner/moe_long"
+kv_cache_prediction_granularity = 1024 # for qwen30b 1k, 4k, 8k
 flops_prediction_granularity = 1024
 online_refine = false
 statistic_path = "${output_dir}/statistic.log"
