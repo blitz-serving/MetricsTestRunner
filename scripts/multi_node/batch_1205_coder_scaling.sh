@@ -15,7 +15,7 @@
 
 # Define scaling factors to search over
 # Upcale 1.0 == 5.0
-SCALING_FACTORS=(2.2)
+SCALING_FACTORS=(2.8 3.0)
 MODEL="qwen30b"
 MACHINE="34"
 NODE1="3"
@@ -44,11 +44,11 @@ SSH_PORT=10022
 # 20x30min = 10h;
 # 2.5h;
 POLICIES=(
-    # "join-shortest-q-weight"
-    # "bailian-impl-06"
-    # "dynamo-deterministic"
-    "least-wait-token-mul-bs-fix"
-    # "join-shortest-q-ttft"
+    "join-shortest-q-weight"
+    "bailian-impl-06"
+    "dynamo-deterministic"
+    "least-wait-token-mul-bs"
+    "join-shortest-q-ttft"
 )
 # "least-wait-token-mul-bs-sample"
 

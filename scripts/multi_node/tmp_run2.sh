@@ -1,11 +1,11 @@
 #!/bin/bash
 # run on 3 and 4
 
-./batch_1204_cpsize.sh
+# 5h
+./batch_1205_coder_scaling.sh
 
-./batch_1204_mooncake_tool_qwen30b.sh
-
-./batch_1204_mooncake_conv_qwen30b.sh
+# 7.5h
+./batch_1205_upscale.sh
 
 
 
