@@ -74,7 +74,7 @@ STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node${NODE2}/lmmetric-logs"
 # Configuration files
 
 #ROUTER_CFG="$CONFIG_DIR/vllm_router.toml"
-CLIENT_TEMPLATE="$CONFIG_DIR/mooncake_conv.toml"
+CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb_upscale.toml"
 #CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb.toml" # TraceB
 # -----------------------------------------------------------------------------
 # Phase 1: Template Generation

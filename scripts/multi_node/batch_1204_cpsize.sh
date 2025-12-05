@@ -22,7 +22,7 @@ NODE1="3"
 NODE2="4"
 
 # Define batch sizes to test
-BATCH_SIZES=(1024 8192)
+BATCH_SIZES=(8192)
 
 REMOTE_IPS="172.27.21.155"
 USE_REMOTE=True # True
@@ -44,10 +44,10 @@ SSH_PORT=10022
 # 20x30min = 10h;
 # 2.5h;
 POLICIES=(
-    "join-shortest-q-weight"
-    "bailian-impl-06"
-    "dynamo-deterministic"
-    "least-wait-token-mul-bs"
+    # "join-shortest-q-weight"
+    # "bailian-impl-06"
+    # "dynamo-deterministic"
+    # "least-wait-token-mul-bs"
     "join-shortest-q-ttft"
 )
 # "least-wait-token-mul-bs-sample"

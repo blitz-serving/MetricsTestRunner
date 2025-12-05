@@ -15,6 +15,7 @@
 
 # Define scaling factors to search over
 SCALING_FACTORS=(1.0)
+MODEL="qwen3b"
 
 # Define batch sizes to test
 BATCH_SIZES=(4096)
@@ -107,7 +108,7 @@ echo "Phase 2: Running experiments for each batch size, scaling factor, and poli
 for bs in ${BATCH_SIZES[@]}; do
     ROUTER_CFG="$CONFIG_DIR/vllm_router_new_fullargs_${bs}_${MODEL}.toml"
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1204_mooncake_tool_qwen30b_final_fix_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1205_mooncake_tool_qwen30b_final_fix_r$run_id"
         
         if [[ "$USE_REMOTE" == "True" ]]; then
             BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_openmpfix_34.toml"
@@ -217,7 +218,7 @@ echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1204_mooncake_tool_qwen30b_final_fix_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1205_mooncake_tool_qwen30b_final_fix_r$run_id"
         
         for sf in ${SCALING_FACTORS[@]}; do
             echo "Generating plots for batch size: $bs, scaling factor: $sf"

@@ -1,2 +1,4 @@
 *.log
 scripts/multi_node/generated_configs/**
+model_csv/attn_prefill_5e55321a_predictions.csv
+moe_long/attn_prefill_cfdf769d_predictions.csv
