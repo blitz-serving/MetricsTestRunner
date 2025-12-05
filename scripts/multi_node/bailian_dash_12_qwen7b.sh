@@ -440,10 +440,10 @@ launch_experiment_session() {
     fi
     
     # Launch router
-    echo "Launching router and waiting 20s..."
+    echo "Launching router and waiting $ROUTER_WAIT_TIME s..."
     tmux new-window -t "$session_name" -n window2
     tmux send-keys -t "$session_name:window2" "$tmux_cmd && python ../../smart_runner.py --toml $config2 --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
-    sleep 20
+    sleep $ROUTER_WAIT_TIME
 
     # Check if router_v2 process is running
     if ! pgrep -f "router_v2" > /dev/null; then
@@ -670,6 +670,12 @@ cleanup_processes
 
 # Clean up previous tmux session
 cleanup_tmux_session "$SESSION_NAME"
+
+if [[ "$POLICY" == "join-shortest-q-ttft" ]] || [[ "$POLICY" == "llmd-q-impl" ]]; then
+    ROUTER_WAIT_TIME=90
+else
+    ROUTER_WAIT_TIME=20
+fi
 
 # Launch experiment in tmux session
 launch_experiment_session "$SESSION_NAME" "$WORK_DIR" "$VENV_PATH" "$CONFIG1" "$CONFIG2" "$CONFIG3" "$OUTPUT_BASE" "$OUTPUT_DIR" "$MODEL_PATH" "$DATASET_DIR" "$NO_BACKEND" "$TIME_IN_SEC" "$REMOTE_OUTPUT_DIR" "$REMOTE_MODEL_PATH" "$REMOTE_VENV_PATH"
