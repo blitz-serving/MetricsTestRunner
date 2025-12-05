@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # 配置参数
-sc="5.0"
-bs="1024"
+sc="2.6"
+bs="4096"
 # moonckae
 # /mnt/debugger/hjb/node1/lmmetric-logs/5.0_batch1024_u0.9_flashinfer_1126_predictions_lasttry_r1/20251126205103_join-shortest-q-ttft
 # 
@@ -17,16 +17,17 @@ bs="1024"
 # /mnt/debugger/hjb/node1/lmmetric-logs/2.2_batch4096_u0.9_flashinfer_1205_coder_scaling_qwen30b_r1
 # /mnt/debugger/hjb/node1/lmmetric-logs/5.0_batch1024_u0.9_flashinfer_redoall_r
 # /mnt/debugger/hjb/node1/lmmetric-logs/5.0_batch1024_u0.9_flashinfer_redoall_r
+# /mnt/debugger/hjb/node1/lmmetric-logs/2.6_batch4096_u0.9_flashinfer_1205_coder_scaling_qwen30b_r1
 
-suffix="sc${sc}-toC-cpsize${bs}-u0.9-qwen7b"
+suffix="sc${sc}-coder-cpsize${bs}-u0.9-qwen30b"
 NODE1="1"
-tag="flashinfer_redoall_r"
+tag="flashinfer_1205_coder_scaling_qwen30b_r1"
 # "join-shortest-q-weight"  "bailian-impl-06" 
 # bailian-impl-05-deterministic"
 # "dynamo-deterministic" "join-shortest-q-ttft" "least-wait-token-mul-bs" "join-shortest-q-weight" "bailian-impl-06" 
 # "bailian-impl-06" "join-shortest-q-ttft" "dynamo-deterministic" "least-wait-token-mul-bs" "join-shortest-q-weight"
 # 4.2 test1 "least-bs-random" "bailian-impl-06" "join-shortest-q-tuple" "join-shortest-q-weight"
-policies=("dynamo-deterministic"  "least-wait-token-random")  # ← 在这里添加你的策略列表
+policies=("bailian-impl-06" "join-shortest-q-ttft" "dynamo-deterministic" "least-wait-token-mul-bs" "join-shortest-q-weight")  # ← 在这里添加你的策略列表
 
 base_src="/mnt/debugger/hjb/node${NODE1}/lmmetric-logs/${sc}_batch${bs}_u0.9_${tag}"
 
@@ -65,7 +66,7 @@ for policy in "${policies[@]}"; do
     # 拷贝需要的文件（仅当存在时）
     [[ -f "$latest_dir/client.jsonl"    ]] && cp "$latest_dir/client.jsonl"    "$target_dir/"
     [[ -f "$latest_dir/statistic.log"   ]] && cp "$latest_dir/statistic.log"   "$target_dir/"
-    [[ -f "$latest_dir/router_v2.log"   ]] && cp "$latest_dir/router_v2.log"   "$target_dir/"
+    #[[ -f "$latest_dir/router_v2.log"   ]] && cp "$latest_dir/router_v2.log"   "$target_dir/"
 
     # 检查是否有文件被复制
     if [[ -z "$(ls -A "$target_dir")" ]]; then

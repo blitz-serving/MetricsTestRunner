@@ -86,6 +86,9 @@ extra_args = ["--use-tokenizer"]
 "--kv-cache-prediction-granularity" = "kv_cache_prediction_granularity"
 "--flops-prediction-granularity" = "flops_prediction_granularity"
 #"--online-refine" = "online_refine"
+# special hack for tee logs
+"2>&1" = ""
+" | tee " = "output_logs"
 
 [app.router.config]
 hostname = "localhost"
@@ -140,3 +143,4 @@ flops_prediction_granularity = 1024
 online_refine = false
 statistic_path = "${output_dir}/statistic.log"
 
+output_logs = "${output_dir}/router_running.log"

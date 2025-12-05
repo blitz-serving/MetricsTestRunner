@@ -87,6 +87,10 @@ extra_args = ["--use-tokenizer"]
 "--flops-prediction-granularity" = "flops_prediction_granularity"
 "--is-moe" = ""
 #"--online-refine" = "online_refine"
+# special hack for tee logs
+"2>&1" = ""
+" | tee " = "output_logs"
+
 
 [app.router.config]
 hostname = "localhost"
@@ -143,3 +147,4 @@ online_refine = false
 
 statistic_path = "${output_dir}/statistic.log"
 
+output_logs = "${output_dir}/router_running.log"

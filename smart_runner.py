@@ -448,6 +448,7 @@ def run_apps(rt: str, rt_config: dict, app_config: dict, variables: dict):
         if not rt_func:
             raise ValueError(f"Unknown runtime: {rt}")
 
+        # Add some environmental variables
         cmd = rt_func(app_cmd, rt_config_with_name, init_config, variables)
 
         print(f"RUN: {cmd}\n\n")
