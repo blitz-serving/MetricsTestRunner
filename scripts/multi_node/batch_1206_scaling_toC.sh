@@ -17,14 +17,14 @@
 # Upcale 1.0 == 5.0
 SCALING_FACTORS=(6.0 6.4 6.8 7.2)
 MODEL="qwen30b"
-MACHINE="12"
-NODE1="1"
-NODE2="2"
+MACHINE="34"
+NODE1="3"
+NODE2="4"
 
 # Define batch sizes to test
 BATCH_SIZES=(4096)
 
-REMOTE_IPS="172.27.21.162"
+REMOTE_IPS="172.27.21.155"
 USE_REMOTE=True # True
 
 SSH_PORT=10022
@@ -47,7 +47,7 @@ POLICIES=(
     "join-shortest-q-weight"
     "bailian-impl-06"
     "dynamo-deterministic"
-    "least-wait-token-mul-bs-fix"
+    #"least-wait-token-mul-bs"
     "join-shortest-q-ttft"
 )
 # "least-wait-token-mul-bs-sample"
@@ -74,8 +74,8 @@ STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node${NODE2}/lmmetric-logs"
 # Configuration files
 
 #ROUTER_CFG="$CONFIG_DIR/vllm_router.toml"
-CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients.toml"
-#CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb.toml" # TraceB
+#CLIENT_TEMPLATE="$CONFIG_DIR/mooncake_tool.toml"
+CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients.toml" # TraceB
 # -----------------------------------------------------------------------------
 # Phase 1: Template Generation
 # -----------------------------------------------------------------------------
