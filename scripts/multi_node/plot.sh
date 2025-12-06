@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(2.4)
+SCALING_FACTORS=(2.0)
 MACHINE="12"
 NODE1="1"
 NODE2="2"
@@ -25,7 +25,7 @@ BATCH_SIZES=(4096)
 USE_REMOTE=True # True
 
 SSH_PORT=10022
-tag="flashinfer_1205_coder_scaling_qwen30b_r1"
+tag="flashinfer_1205_try_scale_mooncake_tool_r1"
 
 # /mnt/debugger/hjb/node1/lmmetric-logs/2.2_batch4096_u0.9_flashinfer_1205_coder_scaling_qwen30b_r1
 # /mnt/debugger/hjb/node1/lmmetric-logs/1.5_batch4096_u0.9_flashinfer_1202_mooncake_conv_qwen7b_r1
@@ -33,6 +33,8 @@ tag="flashinfer_1205_coder_scaling_qwen30b_r1"
 #/mnt/debugger/hjb/node3/lmmetric-logs/1.5_batch4096_u0.9_flashinfer_1204_mooncake_conv_final_fix_qwen30b_r1
 # /mnt/debugger/hjb/node1/lmmetric-logs/5.0_batch1024_u0.9_1119_lwl_gated_param_r1
 # /mnt/debugger/hjb/node1/lmmetric-logs/5.6_batch4096_u0.9_flashinfer_1203_toC_scaling_30b_r1
+# /mnt/debugger/hjb/node1/lmmetric-logs/5.9_batch4096_u0.9_flashinfer_1205_scaling_toC_r1
+# /mnt/debugger/hjb/node1/lmmetric-logs/2.0_batch4096_u0.9_flashinfer_1205_try_scale_mooncake_tool_r1
 
 # Define policies to test
 # "bounded-most-hit-q" is debugging now

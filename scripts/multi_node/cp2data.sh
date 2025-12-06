@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 配置参数
-sc="2.6"
+sc="2.8"
 bs="4096"
 # moonckae
 # /mnt/debugger/hjb/node1/lmmetric-logs/5.0_batch1024_u0.9_flashinfer_1126_predictions_lasttry_r1/20251126205103_join-shortest-q-ttft

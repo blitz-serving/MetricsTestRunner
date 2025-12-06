@@ -278,8 +278,8 @@ def main():
         # Load and process data
         print(f"\nProcessing data from {jsonl_path}")
         data, err_rate = load_jsonl_data(jsonl_path)
-        if (err_rate > 0.05):
-            report_errs.append({strategy_names[i]:err_rate})
+        if (err_rate > 0.0):
+            report_errs.append({strategy_names[i]:f"{err_rate=}"})
         all_data[strategy_names[i]] = data
         metrics = extract_metrics(data)
         all_metrics[strategy_names[i]] = metrics
