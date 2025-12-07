@@ -15,7 +15,7 @@
 
 # Define scaling factors to search over
 # Upcale 1.0 == 5.0
-SCALING_FACTORS=(2.0)
+SCALING_FACTORS=(1.5 1.6 1.7 1.8 1.9 2.0)
 MODEL="qwen7b"
 MACHINE="12"
 NODE1="1"
@@ -44,11 +44,12 @@ SSH_PORT=10022
 # 20x30min = 10h;
 # 2.5h;
 POLICIES=(
-    "join-shortest-q-weight"
-    "bailian-impl-05-deterministic"
-    "dynamo-deterministic"
-    "least-wait-token-mul-bs-fix"
-    "join-shortest-q-ttft"
+    "preble"
+    # "join-shortest-q-weight"
+    # "bailian-impl-05-deterministic"
+    # "dynamo-deterministic"
+    # "least-wait-token-mul-bs-fix"
+    # "join-shortest-q-ttft"
 )
 # "least-wait-token-mul-bs-sample"
 
@@ -112,7 +113,7 @@ echo "Phase 2: Running experiments for each batch size, scaling factor, and poli
 for bs in ${BATCH_SIZES[@]}; do
     ROUTER_CFG="$CONFIG_DIR/vllm_router_new_fullargs_${bs}_${MODEL}.toml"
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1206_scaling_mooncake_conv_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1207_scaling_mooncake_conv_r$run_id"
         
         if [[ "$USE_REMOTE" == "True" ]]; then
             BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_openmpfix_${MACHINE}.toml"
@@ -222,7 +223,7 @@ echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1206_scaling_mooncake_conv_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1207_scaling_mooncake_conv_r$run_id"
         
         for sf in ${SCALING_FACTORS[@]}; do
             echo "Generating plots for batch size: $bs, scaling factor: $sf"

@@ -15,7 +15,7 @@
 
 # Define scaling factors to search over
 # Upcale 1.0 == 5.0
-SCALING_FACTORS=(1.4 1.6 1.8)
+SCALING_FACTORS=(1.2)
 MODEL="qwen30b"
 MACHINE="12"
 NODE1="1"
