@@ -29,10 +29,11 @@ bs="4096"
 # /mnt/debugger/hjb/node1/lmmetric-logs/5.6_batch4096_u0.9_flashinfer_1205_toC_scaling_5_6_qwen30b_r1
 # /mnt/debugger/hjb/node1/lmmetric-logs/1.2_batch4096_u0.9_flashinfer_1206_scaling_mooncake_tool_r1
 # /mnt/debugger/hjb/node3/lmmetric-logs/1.2_batch4096_u0.9_flashinfer_1207_scaling_mooncake_tool_bailian05_r1/20251207173451_bailian-impl-05-deterministic
+# /mnt/debugger/hjb/node1/lmmetric-logs/2.0_batch4096_u0.9_flashinfer_1206_scaling_mooncake_conv_r1
 
-suffix="sc${sc}-mooncake-tool-cpsize${bs}-u0.9-qwen30b"
-NODE1="3"
-tag="flashinfer_1207_scaling_mooncake_tool_bailian05_r1"
+suffix="sc${sc}-mooncake-conv-cpsize${bs}-u0.9-qwen7b"
+NODE1="1"
+tag="flashinfer_1206_scaling_mooncake_conv_r1"
 # "join-shortest-q-weight"  "bailian-impl-06" 
 # bailian-impl-05-deterministic"
 # "dynamo-deterministic" "join-shortest-q-ttft" "least-wait-token-mul-bs" "join-shortest-q-weight" "bailian-impl-06" 
@@ -40,7 +41,7 @@ tag="flashinfer_1207_scaling_mooncake_tool_bailian05_r1"
 # Mooncake  bailian-impl-05-deterministic" "join-shortest-q-ttft" "dynamo-deterministic" "least-wait-token-mul-bs" "join-shortest-q-weight"
 # 4.2 test1 "least-bs-random" "least-wait-token-random" "least-wait-token-bs" "bailian-impl-06" "join-shortest-q-tuple" "join-shortest-q-weight" "join-shortest-q-ttft"
 # "bailian-impl-06" "join-shortest-q-ttft" "dynamo-deterministic" "least-wait-token-mul-bs" "join-shortest-q-weight"
-policies=( "bailian-impl-05-deterministic" )  # ← 在这里添加你的策略列表
+policies=( "bailian-impl-05-deterministic" "join-shortest-q-ttft" "dynamo-deterministic" "least-wait-token-mul-bs-fix" "join-shortest-q-weight")  # ← 在这里添加你的策略列表
 
 base_src="/mnt/debugger/hjb/node${NODE1}/lmmetric-logs/${sc}_batch${bs}_u0.9_${tag}"
 

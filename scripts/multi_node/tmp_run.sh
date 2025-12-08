@@ -19,7 +19,14 @@
 # ./batch_1205_trysc_mooncake_conv.sh
 
 # 10h
-./batch_1206_scaling_mooncake_conv.sh
+#./batch_1206_scaling_mooncake_conv.sh
 
 # 7.5h
-./batch_1206_scaling_mooncake_tool.sh
+#./batch_1206_scaling_mooncake_tool.sh
+
+./batch_1207_scaling_toC.sh
+
+./batch_1207_scaling_mooncake_tool.sh
+
+./batch_1207_scaling_mooncake_conv.sh
+
