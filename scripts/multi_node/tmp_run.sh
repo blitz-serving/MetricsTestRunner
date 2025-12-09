@@ -24,9 +24,9 @@
 # 7.5h
 #./batch_1206_scaling_mooncake_tool.sh
 
-./batch_1207_scaling_toC.sh
+./batch_1208_scaling_toC.sh
 
-./batch_1207_scaling_mooncake_tool.sh
+./batch_1208_scaling_mooncake_tool.sh
 
-./batch_1207_scaling_mooncake_conv.sh
+./batch_1208_scaling_mooncake_conv.sh
 

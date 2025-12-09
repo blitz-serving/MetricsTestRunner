@@ -15,7 +15,8 @@
 
 # Define scaling factors to search over
 # Upcale 1.0 == 5.0
-SCALING_FACTORS=(1.2 1.4 1.6 1.8 2.0)
+#SCALING_FACTORS=(1.2 1.4 1.6 1.8 2.0)
+SCALING_FACTORS=(1.2 1.8)
 MODEL="qwen30b"
 MACHINE="12"
 NODE1="1"
@@ -44,7 +45,8 @@ SSH_PORT=10022
 # 20x30min = 10h;
 # 2.5h;
 POLICIES=(
-   "ttft-only"
+   #"ttft-only"
+   "least-wait-token-random"
 )
 # "least-wait-token-mul-bs-sample"
 

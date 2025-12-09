@@ -16,11 +16,11 @@
 # Define scaling factors to search over
 # Upcale 1.0 == 5.0
 #SCALING_FACTORS=(5.5 5.6 6.0 6.4 6.8 7.2)
-SCALING_FACTORS=(5.0 6.8 7.2)
+SCALING_FACTORS=(5.6 6.8)
 MODEL="qwen30b"
-MACHINE="12"
-NODE1="1"
-NODE2="2"
+MACHINE="34"
+NODE1="3"
+NODE2="4"
 
 # Define batch sizes to test
 BATCH_SIZES=(4096)
@@ -46,7 +46,8 @@ SSH_PORT=10022
 # 2.5h;
 POLICIES=(
     #"ttft-only"
-    "least-wait-token-random"
+    #"least-wait-token-random"
+    "join-shortest-q-ttft"
 )
 # "least-wait-token-mul-bs-sample"
 
@@ -110,7 +111,7 @@ echo "Phase 2: Running experiments for each batch size, scaling factor, and poli
 for bs in ${BATCH_SIZES[@]}; do
     ROUTER_CFG="$CONFIG_DIR/vllm_router_new_fullargs_${bs}_${MODEL}.toml"
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1208_toC_onlyttft_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1209_toC_qttft_wrong_parameter_r$run_id"
         
         if [[ "$USE_REMOTE" == "True" ]]; then
             BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_openmpfix_${MACHINE}.toml"
@@ -220,7 +221,7 @@ echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1208_toC_onlyttft_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1209_toC_qttft_wrong_parameter_r$run_id"
         
         for sf in ${SCALING_FACTORS[@]}; do
             echo "Generating plots for batch size: $bs, scaling factor: $sf"
