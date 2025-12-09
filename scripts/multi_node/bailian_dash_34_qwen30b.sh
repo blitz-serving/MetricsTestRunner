@@ -668,7 +668,7 @@ cleanup_processes
 # Clean up previous tmux session
 cleanup_tmux_session "$SESSION_NAME"
 
-if [[ "$POLICY" == "join-shortest-q-ttft" ]] || [[ "$POLICY" == "llmd-q-impl" ]] || [[ "$POLICY" == "preble" ]]; then
+if [[ "$POLICY" == "join-shortest-q-ttft" ]] || [[ "$POLICY" == "llmd-q-impl" ]] || [[ "$POLICY" == "preble" ]] || [[ "$POLICY" == "join-shortest-q-ttft-mul-bs" ]]; then
     ROUTER_WAIT_TIME=90
 else
     ROUTER_WAIT_TIME=20
