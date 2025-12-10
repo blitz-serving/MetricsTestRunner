@@ -502,8 +502,8 @@ post_process_results() {
     echo "Generating many cdf figs \\n"
     "$venv_path/bin/python" "../../figures/draw_cdf.py" "$output_dir/"
 
-    echo "Generating req number with time figs \\n"
-    "$venv_path/bin/python" "../../figures/draw_cumu.py" "$output_dir/"
+    #echo "Generating req number with time figs \\n"
+    #"$venv_path/bin/python" "../../figures/draw_cumu.py" "$output_dir/"
 
     echo "Generating figs based statistics \\n"
     "$venv_path/bin/python" "../../figures/analyze_statistics.py" "$output_dir/"

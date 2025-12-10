@@ -16,16 +16,16 @@
 # Define scaling factors to search over
 # Upcale 1.0 == 5.0
 #SCALING_FACTORS=(5.5 5.6 6.0 6.4 6.8 7.2)
-SCALING_FACTORS=(5.0)
+SCALING_FACTORS=(6.0)
 MODEL="qwen7b"
-MACHINE="12"
-NODE1="1"
-NODE2="2"
+MACHINE="34"
+NODE1="3"
+NODE2="4"
 
 # Define batch sizes to test
 BATCH_SIZES=(4096)
 
-REMOTE_IPS="172.27.21.162"
+REMOTE_IPS="172.27.21.155"
 USE_REMOTE=True # True
 
 SSH_PORT=10022
@@ -47,10 +47,10 @@ SSH_PORT=10022
 POLICIES=(
     # "bailian-impl-01-deterministic"
     # "bailian-impl-03-deterministic"
-    # "bailian-impl-04-deterministic"
+    "bailian-impl-04-deterministic"
     # "bailian-impl-06-deterministic"
-    "bailian-impl-07-deterministic"
-    "bailian-impl-09-deterministic"
+    #"bailian-impl-055-deterministic"
+    #"bailian-impl-09-deterministic"
 )
 # "least-wait-token-mul-bs-sample"
 
