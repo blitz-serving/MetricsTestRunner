@@ -22,7 +22,7 @@ mkdir -p "$(dirname "$output_tar")"
 tmp_root=$(mktemp -d)
 
 # 👇 关键：在 tmp_root 下创建目标顶层目录
-top_dir_name="${sc}_batch1024_u0.9_${show_tag}"
+top_dir_name="${sc}_batch${bs}_u0.9_${show_tag}"
 archive_root="$tmp_root/$top_dir_name"
 mkdir -p "$archive_root"
 

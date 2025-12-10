@@ -45,11 +45,11 @@ SSH_PORT=10022
 # 20x30min = 10h;
 # 2.5h;
 POLICIES=(
-    "bailian-impl-01-deterministic"
-    "bailian-impl-03-deterministic"
-    "bailian-impl-05-deterministic"
-    "bailian-impl-07-deterministic"
-    "bailian-impl-09-deterministic"
+    # "bailian-impl-01-deterministic"
+    # "bailian-impl-03-deterministic"
+    "bailian-impl-04-deterministic"
+    "bailian-impl-06-deterministic"
+    #"bailian-impl-09-deterministic"
 )
 # "least-wait-token-mul-bs-sample"
 

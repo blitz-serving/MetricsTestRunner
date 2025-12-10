@@ -14,7 +14,7 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(6.8)
+SCALING_FACTORS=(5.6)
 MACHINE="12"
 NODE1="1"
 NODE2="2"
@@ -25,7 +25,7 @@ BATCH_SIZES=(4096)
 USE_REMOTE=True # True
 
 SSH_PORT=10022
-tag="flashinfer_1208_toC_onlyttft_r1"
+tag="flashinfer_1205_toC_scaling_5_6_qwen30b_r1"
 
 # /mnt/debugger/hjb/node1/lmmetric-logs/2.2_batch4096_u0.9_flashinfer_1205_coder_scaling_qwen30b_r1
 # /mnt/debugger/hjb/node1/lmmetric-logs/1.5_batch4096_u0.9_flashinfer_1202_mooncake_conv_qwen7b_r1
@@ -36,6 +36,8 @@ tag="flashinfer_1208_toC_onlyttft_r1"
 # /mnt/debugger/hjb/node1/lmmetric-logs/5.9_batch4096_u0.9_flashinfer_1205_scaling_toC_r1
 # /mnt/debugger/hjb/node1/lmmetric-logs/2.0_batch4096_u0.9_flashinfer_1205_try_scale_mooncake_tool_r1
 # /mnt/debugger/hjb/node1/lmmetric-logs/6.8_batch4096_u0.9_flashinfer_1208_toC_onlyttft_r1
+#/mnt/debugger/hjb/node1/lmmetric-logs/5.6_batch4096_u0.9_flashinfer_1205_toC_scaling_5_6_qwen30b_r1
+
 # Define policies to test
 # "bounded-most-hit-q" is debugging now
 # bounded-most-hit-q
@@ -56,11 +58,12 @@ POLICIES=(
     # #"bailian-impl-05-deterministic"
     # "dynamo-deterministic"
     # # "least-wait-token-gated-bs"
-    # "least-wait-token-mul-bs"
-    # "join-shortest-q-ttft"
+    "least-wait-token-mul-bs"
+    "join-shortest-q-ttft"
+    "join-shortest-q-ttft-mul-bs"
     # "llmd-impl-q"
-    "least-wait-token-random"
-    "ttft-only"
+    # "least-wait-token-random"
+    # "ttft-only"
 )
 # "least-wait-token-mul-bs-sample"
 
