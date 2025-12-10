@@ -47,7 +47,15 @@ SSH_PORT=10022
 POLICIES=(
     #"ttft-only"
     #"least-wait-token-random"
-    "join-shortest-q-ttft-mul-bs"
+    #"join-shortest-q-ttft-mul-bs"
+    "join-shortest-q-ttft-d02"
+    "join-shortest-q-ttft-linear-bs-01"
+    "join-shortest-q-ttft-d04"
+    "join-shortest-q-ttft-d08"
+    "join-shortest-q-ttft-linear-bs-03"
+    "join-shortest-q-ttft-linear-bs-05"
+    "join-shortest-q-ttft-linear-bs-07"
+    "join-shortest-q-ttft-linear-bs-09"
 )
 # "least-wait-token-mul-bs-sample"
 
