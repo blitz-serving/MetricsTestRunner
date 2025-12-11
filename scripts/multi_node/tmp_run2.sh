@@ -17,8 +17,9 @@
 
 # ./batch_1207_toC_6.8redo.sh
 
-./batch_1209_qttft-mul-bs-toC.sh
+./batch_1210_filter-mk-tool.sh
+./batch_1210_filter-toB.sh
+./batch_1210_filter-toC.sh
 
-./batch_1209_qttft-mul-bs-mk-tool.sh
-
+./batch_1210_filter-coder.sh
 
