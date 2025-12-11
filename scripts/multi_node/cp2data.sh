@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 配置参数
-sc="5.6"
+sc="2.6"
 bs="4096"
 # moonckae
 # /mnt/debugger/hjb/node1/lmmetric-logs/5.0_batch1024_u0.9_flashinfer_1126_predictions_lasttry_r1/20251126205103_join-shortest-q-ttft
@@ -44,11 +44,25 @@ bs="4096"
 # /mnt/debugger/hjb/node3/lmmetric-logs/5.6_batch4096_u0.9_flashinfer_1210_toC_qttft_wrong_parameter_r1
 # /mnt/debugger/hjb/node1/lmmetric-logs/5.6_batch4096_u0.9_flashinfer_1209_toC_bailian_r1/20251209222524_bailian-impl-07-deterministic
 # /mnt/debugger/hjb/node3/lmmetric-logs/5.6_batch4096_u0.9_flashinfer_1210_toC_qttft_wrong_parameter_crazy_r1/20251210170108_join-shortest-q-ttft
+# /mnt/debugger/hjb/node3/lmmetric-logs/5.6_batch4096_u0.9_flashinfer_1210_toC_qttft_wrong_parameter_crazy_r1
+# /mnt/debugger/hjb/node1/lmmetric-logs/1.8_batch4096_u0.9_flashinfer_1210_mk-tool_bailian_r1
+# /mnt/debugger/hjb/node1/lmmetric-logs/1.8_batch4096_u0.9_flashinfer_1210_mk-tool_bailian_r1
+# /mnt/debugger/hjb/node1/lmmetric-logs/1.8_batch4096_u0.9_flashinfer_1210_mk-tool_bailian_r1
+# /mnt/debugger/hjb/node3/lmmetric-logs/6.0_batch4096_u0.9_flashinfer_1210_toB_bailian_r1
+# /mnt/debugger/hjb/node3/lmmetric-logs/1.8_batch4096_u0.9_flashinfer_1210_mk-tool_filter_r1
+# /mnt/debugger/hjb/node3/lmmetric-logs/2.6_batch4096_u0.9_flashinfer_1210_coder_filter_r1
+#/mnt/debugger/hjb/node3/lmmetric-logs/5.6_batch4096_u0.9_flashinfer_1210_toC_filter_r1
+#/mnt/debugger/hjb/node3/lmmetric-logs/6.0_batch4096_u0.9_flashinfer_1210_toB_filter_r1
+# lmmetric-logs/1.2_batch4096_u0.9_flashinfer_1210_mk-tool_bailian_scaling_r1
+# /mnt/debugger/hjb/node1/lmmetric-logs/5.6_batch4096_u0.9_flashinfer_1210_fix_normtoC_bailian_scaling_r1
+# /mnt/debugger/hjb/node1/lmmetric-logs/2.0_batch4096_u0.9_flashinfer_1210_coder_bailian_scaling_r1
+# /mnt/debugger/hjb/node1/lmmetric-logs/2.6_batch4096_u0.9_flashinfer_1210_coder_bailian_r1
 
-#suffix="sc${sc}-toC-cpsize${bs}-u0.9-qwen30b-bailian-fixnorm"
-suffix="sc${sc}-toC-cpsize${bs}-u0.9-qwen30b-wrong-parameter-crazy"
-NODE1="3"
-tag="flashinfer_1210_toC_qttft_wrong_parameter_crazy_r1"
+suffix="sc${sc}-coder-cpsize${bs}-u0.9-qwen30b-fixnorm"
+#suffix="sc${sc}-toC-cpsize${bs}-u0.9-qwen30b-wrong-parameter-crazy"
+NODE1="1"
+#tag="flashinfer_1210_toC_qttft_wrong_parameter_crazy_r1"
+tag="flashinfer_1210_coder_bailian_r1"
 # "join-shortest-q-weight"  "bailian-impl-06" 
 # bailian-impl-05-deterministic"
 # "dynamo-deterministic" "join-shortest-q-ttft" "least-wait-token-mul-bs" "join-shortest-q-weight" "bailian-impl-06" 
@@ -59,7 +73,7 @@ tag="flashinfer_1210_toC_qttft_wrong_parameter_crazy_r1"
 # "join-shortest-q-ttft-mul-bs"
 # "bailian-impl-03-deterministic" "bailian-impl-05-deterministic"  "bailian-impl-07-deterministic" "bailian-impl-09-deterministic"
 # "bailian-impl-01-deterministic" "bailian-impl-05-deterministic"  "bailian-impl-07-deterministic" "bailian-impl-09-deterministic"
-policies=("join-shortest-q-ttft")  # ← 在这里添加你的策略列表
+policies=("bailian-impl-07-deterministic" "bailian-impl-055-deterministic" "bailian-impl-04-deterministic" "bailian-impl-09-deterministic")  # ← 在这里添加你的策略列表
 
 base_src="/mnt/debugger/hjb/node${NODE1}/lmmetric-logs/${sc}_batch${bs}_u0.9_${tag}"
 

@@ -24,11 +24,21 @@
 # 7.5h
 #./batch_1206_scaling_mooncake_tool.sh
 
-./batch_1209_bailian-toC.sh
+# ./batch_1209_bailian-toC.sh
 
-./batch_1209_bailian-coder.sh
+# ./batch_1209_bailian-coder.sh
 
-./batch_1209_bailian-mk-tool.sh
+# ./batch_1209_bailian-mk-tool.sh
 
-./batch_1209_bailian-toB.sh
+# ./batch_1209_bailian-toB.sh
+
+./batch_1210_bailian-toC-scaling.sh
+
+./batch_1210_bailian-toB-scaling.sh
+
+./batch_1210_bailian-coder-scaling.sh
+
+./batch_1210_bailian-mk-tool-scaling.sh
+
+
 

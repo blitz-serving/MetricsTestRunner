@@ -48,8 +48,9 @@ POLICIES=(
     # "bailian-impl-01-deterministic"
     # "bailian-impl-03-deterministic"
     # "bailian-impl-05-deterministic"
-    "bailian-impl-07-deterministic"
-    "bailian-impl-09-deterministic"
+    "bailian-impl-04-deterministic"
+    # "bailian-impl-07-deterministic"
+    # "bailian-impl-09-deterministic"
 )
 # "least-wait-token-mul-bs-sample"
 
