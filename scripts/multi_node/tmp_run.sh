@@ -32,13 +32,17 @@
 
 # ./batch_1209_bailian-toB.sh
 
-./batch_1210_bailian-toC-scaling.sh
+# ./batch_1210_bailian-toC-scaling.sh
 
-./batch_1210_bailian-toB-scaling.sh
+# ./batch_1210_bailian-toB-scaling.sh
 
-./batch_1210_bailian-coder-scaling.sh
+# ./batch_1210_bailian-coder-scaling.sh
 
-./batch_1210_bailian-mk-tool-scaling.sh
+# ./batch_1210_bailian-mk-tool-scaling.sh
 
+#./batch_1211_mul-toC.sh
+./batch_1211_mul-mk-tool.sh
+./batch_1211_mul-coder.sh
 
+./batch_1211_mul-toB.sh
 

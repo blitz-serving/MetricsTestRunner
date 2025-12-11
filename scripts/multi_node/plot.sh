@@ -14,10 +14,10 @@
 # -----------------------------------------------------------------------------
 
 # Define scaling factors to search over
-SCALING_FACTORS=(5.6)
-MACHINE="12"
-NODE1="1"
-NODE2="2"
+SCALING_FACTORS=(6.0)
+MACHINE="34"
+NODE1="3"
+NODE2="4"
 
 # Define batch sizes to test
 BATCH_SIZES=(4096)
@@ -25,8 +25,9 @@ BATCH_SIZES=(4096)
 USE_REMOTE=True # True
 
 SSH_PORT=10022
-tag="flashinfer_1205_toC_scaling_5_6_qwen30b_r1"
 
+tag="flashinfer_1206_scaling_toC_r1"
+# /mnt/debugger/hjb/node3/lmmetric-logs/6.0_batch4096_u0.9_flashinfer_1206_scaling_toC_r1
 # /mnt/debugger/hjb/node1/lmmetric-logs/2.2_batch4096_u0.9_flashinfer_1205_coder_scaling_qwen30b_r1
 # /mnt/debugger/hjb/node1/lmmetric-logs/1.5_batch4096_u0.9_flashinfer_1202_mooncake_conv_qwen7b_r1
 # /mnt/debugger/hjb/node3/lmmetric-logs/1.0_batch4096_u0.9_flashinfer_1204_mooncake_tool_qwen30b_fix_timeout_length_r1
@@ -53,14 +54,17 @@ tag="flashinfer_1205_toC_scaling_5_6_qwen30b_r1"
 # 20x30min = 10h;
 # 4 * 3  / 2 = 6h;
 POLICIES=(
-    # "join-shortest-q-weight"
+    "join-shortest-q-weight"
     # "bailian-impl-06"
     # #"bailian-impl-05-deterministic"
     # "dynamo-deterministic"
     # # "least-wait-token-gated-bs"
-    "least-wait-token-mul-bs"
+    "dynamo-deterministic"
+    "bailian-impl-07-deterministic"
+    "least-wait-token-mul-bs-fix"
     "join-shortest-q-ttft"
-    "join-shortest-q-ttft-mul-bs"
+    "hit-ratio-mul-bs"
+    #"join-shortest-q-ttft-mul-bs"
     # "llmd-impl-q"
     # "least-wait-token-random"
     # "ttft-only"
