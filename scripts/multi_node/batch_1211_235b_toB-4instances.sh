@@ -29,9 +29,9 @@ SSH_PORT=10022
 
 # Define policies to test
 POLICIES=(
-    "bailian-impl-07-deterministic"
+    #"bailian-impl-07-deterministic"
     #"join-shortest-q-weight"
-    #"least-wait-token-mul-bs-fix"
+    "least-wait-token-mul-bs-fix"
 )
 
 # Base paths
@@ -47,8 +47,7 @@ REMOTE_OUTPUT_BASES=("/tmp/node2/lmmetric-logs" "/tmp/node3/lmmetric-logs"  "/tm
 STORE_REMOTE_OUTPUT_BASES=("/mnt/debugger/hjb/node2/lmmetric-logs" "/mnt/debugger/hjb/node3/lmmetric-logs" "/mnt/debugger/hjb/node4/lmmetric-logs")  # Corresponds to REMOTE_IPS
 
 # Configuration files
-
-CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients.toml"
+CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb.toml" # TraceB
 
 # -----------------------------------------------------------------------------
 # Utility Functions
@@ -206,7 +205,7 @@ echo "🔬 Phase 2: Running experiments for each batch size, scaling factor, and
 for bs in ${BATCH_SIZES[@]}; do
     ROUTER_CFG="$CONFIG_DIR/vllm_router_new_fullargs_${bs}_qwen235b.toml"
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1211_235b_4instances_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1211_235b_4instancse-toB_r$run_id"
         
         if [[ "$USE_REMOTE" == "True" ]]; then
             BACKEND_CFG="$CONFIG_DIR/launch_vllm_4instances_b${bs}_openmpfix_12.toml"
@@ -324,7 +323,7 @@ echo "📊 Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1211_235b_4instances_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1211_235b_4instancse-toB_r$run_id"
         
         for sf in ${SCALING_FACTORS[@]}; do
             echo "📈 Generating plots for batch size: $bs, scaling factor: $sf"
