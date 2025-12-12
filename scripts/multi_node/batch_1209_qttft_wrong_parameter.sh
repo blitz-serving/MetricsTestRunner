@@ -16,8 +16,8 @@
 # Define scaling factors to search over
 # Upcale 1.0 == 5.0
 #SCALING_FACTORS=(5.5 5.6 6.0 6.4 6.8 7.2)
-SCALING_FACTORS=(2.6)
-MODEL="qwen30b"
+SCALING_FACTORS=(6.0)
+MODEL="qwen7b"
 MACHINE="34"
 NODE1="3"
 NODE2="4"
@@ -74,8 +74,9 @@ STORE_REMOTE_OUTPUT_BASE="/mnt/debugger/hjb/node${NODE2}/lmmetric-logs"
 
 #ROUTER_CFG="$CONFIG_DIR/vllm_router.toml"
 #CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients.toml"
-CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients_coder.toml"
-#CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb.toml" # TraceB
+#CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clients_coder.toml"
+#CLIENT_TEMPLATE="$CONFIG_DIR/mooncake_tool.toml"
+CLIENT_TEMPLATE="$CONFIG_DIR/bailian_clientb.toml" # TraceB
 # -----------------------------------------------------------------------------
 # Phase 1: Template Generation
 # -----------------------------------------------------------------------------
@@ -112,7 +113,7 @@ echo "Phase 2: Running experiments for each batch size, scaling factor, and poli
 for bs in ${BATCH_SIZES[@]}; do
     ROUTER_CFG="$CONFIG_DIR/vllm_router_new_fullargs_${bs}_${MODEL}_wrong.toml"
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1210_coder_qttft_wrong_parameter_crazy_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1210_toB-qttft_wrong_parameter_crazy_r$run_id"
         
         if [[ "$USE_REMOTE" == "True" ]]; then
             BACKEND_CFG="$CONFIG_DIR/launch_vllm_16instances_b${bs}_openmpfix_${MACHINE}.toml"
@@ -222,7 +223,7 @@ echo "Phase 3: Generating plots for each batch size and scaling factor..."
 
 for bs in ${BATCH_SIZES[@]}; do
     for run_id in 1; do  # Run 3 times: r1, r2, r3
-        TAG="batch${bs}_u0.9_flashinfer_1210_coder_qttft_wrong_parameter_crazy_r$run_id"
+        TAG="batch${bs}_u0.9_flashinfer_1210_toB-qttft_wrong_parameter_crazy_r$run_id"
         
         for sf in ${SCALING_FACTORS[@]}; do
             echo "Generating plots for batch size: $bs, scaling factor: $sf"
