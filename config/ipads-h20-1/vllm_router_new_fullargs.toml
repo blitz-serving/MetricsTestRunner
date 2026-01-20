@@ -123,6 +123,6 @@ attn_prefill_overhead = 0.1
 attn_decode_overhead = 0.4
 model_hash = "dcd79310"
 predict_cache_path_prefix = "/nvme/zkx/MetricsTestRunner/model_csv/"
-kv_cache_prediction_granularity = 128
+kv_cache_prediction_granularity = 1024
 flops_prediction_granularity = 1024
 validation_worker = 10

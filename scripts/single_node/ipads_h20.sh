@@ -36,7 +36,7 @@ OUTPUT_BASE="/nvme/lmetric/logs/lmmetric-logs"
 DATASET_DIR="/nvme/lmetric/datasets"
 
 # Evaluation duration in seconds
-TIME_IN_SEC=1200
+TIME_IN_SEC=140
 
 # Session name for tmux
 SESSION_NAME="azure"
@@ -123,6 +123,7 @@ build_project_components() {
     # Build router_v2 with specified features
     # TODO, note this is debug mode now --release 
     cargo build -p router_v2 --features "$features"
+    cargo build -p router_v2 --features "$features" --release
     if [ $? -ne 0 ]; then
         echo "Error: Failed to build router_v2."
         exit 1
@@ -195,7 +196,7 @@ launch_experiment_session() {
         tmux new-window -t "$session_name" -n window1
         tmux send-keys -t "$session_name:window1" "$tmux_cmd && python ../../smart_runner.py --toml $config1 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
         echo "python ../../smart_runner.py --toml $config1 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir"
-        sleep 120
+        sleep 150
     fi
     
     # Launch router
@@ -279,16 +280,18 @@ done
 set -- "${POSITIONAL_ARGS[@]}"
 
 # Validate required arguments
-if [ "$#" -ne 4 ]; then
-    echo "Error: Incorrect number of arguments."
-    print_usage
-    exit 1
-fi
+# if [ "$#" -ne 5 ]; then
+#     echo "Error: Incorrect number of arguments."
+#     print_usage
+#     exit 1
+# fi
 
 CONFIG1="$1"
 CONFIG2="$2"
 CONFIG3="$3"
 POLICY="$4"
+# TEST_NAME="${5:-}"
+
 
 # Validate policy
 # if [[ "$POLICY" != "least-work-q" && "$POLICY" != "round-robin-q" && "$POLICY" != "join-shortest-q" ]]; then
@@ -348,6 +351,13 @@ cleanup_tmux_session "$SESSION_NAME"
 # Launch experiment in tmux session
 launch_experiment_session "$SESSION_NAME" "$WORK_DIR" "$VENV_PATH" "$CONFIG1" "$CONFIG2" "$CONFIG3" "$OUTPUT_BASE" "$OUTPUT_DIR" "$MODEL_PATH" "$DATASET_DIR" "$NO_BACKEND" "$TIME_IN_SEC"
 
+# if [[ -n "$TEST_NAME" ]]; then
+    
+#     mv $OUTPUT_DIR "${OUTPUT_BASE}/${TEST_NAME}"
+#     python /nvme/zkx/MetricsTestRunner/throughput_collector.py "${OUTPUT_BASE}/${TEST_NAME}" > "${OUTPUT_BASE}/throughput.log"
+# else
+#     python /nvme/zkx/MetricsTestRunner/throughput_collector.py "${OUTPUT_DIR}" > "${OUTPUT_DIR}/throughput.log"
+# fi
 # Post-process results
 post_process_results "$OUTPUT_DIR" "$WORK_DIR" "$VENV_PATH"
 
