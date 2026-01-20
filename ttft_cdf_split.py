@@ -9,8 +9,9 @@ def parse_predicted_ttft(log_lines):
     解析日志中的预测 TTFT，只保留「实际被指派的实例」的那一条预测。
     """
     pred_pattern = re.compile(
-        r"Request_(\d+)\s+estimated ttft:\s*([0-9.]+)\s*ms on Vllm#(\d+)"
+        r"Request_(\d+)\s+estimated ttft:\s*([0-9.]+)\s*ms.*?on\s+Vllm#(\d+)"
     )
+
     assign_pattern = re.compile(
         r"Assigning Request_(\d+)\s+to Replica#(\d+)"
     )
@@ -152,8 +153,8 @@ def main():
     parser = argparse.ArgumentParser(description="Compare predicted and real TTFT, plot CDF by real_ttft threshold.")
     parser.add_argument("--log", required=True, help="Path to simulator log file (for predicted TTFT).")
     parser.add_argument("--client", required=True, help="Path to client.jsonl file (for real TTFT).")
-    parser.add_argument("--threshold", type=float, default=1000,
-                        help="Threshold (ms) to split real_ttft groups (default=1000ms).")
+    parser.add_argument("--threshold", type=float, default=100,
+                        help="Threshold (ms) to split real_ttft groups (default=100ms).")
     args = parser.parse_args()
 
     with open(args.log, "r", encoding="utf-8") as f:

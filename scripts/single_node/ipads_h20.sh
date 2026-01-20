@@ -41,6 +41,8 @@ TIME_IN_SEC=140
 # Session name for tmux
 SESSION_NAME="azure"
 
+SCRIPTS_DIR="/nvme/zkx/MetricsTestRunner"
+
 # -----------------------------------------------------------------------------
 # Derived Configuration - Computed from User Parameters
 # -----------------------------------------------------------------------------
@@ -368,3 +370,6 @@ cleanup_processes "$VENV_PATH"
 echo "Experiment completed successfully!"
 echo "Results are available in: $OUTPUT_DIR"
 echo "You can inspect the tmux session using: tmux attach-session -t $SESSION_NAME"
+
+echo "python $WORK_DIR/ttft_cdf.py --log=$OUTPUT_DIR/router_v2.log --client=$OUTPUT_DIR/client_code_1.jsonl"
+python $WORK_DIR/ttft_cdf_split.py --log=$OUTPUT_DIR/router_v2.log --client=$OUTPUT_DIR/client_code_1.jsonl
