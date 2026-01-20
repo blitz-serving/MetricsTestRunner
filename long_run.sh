@@ -19,7 +19,7 @@ CLIENT_CFGS=(
 CLIENT_CFG="/nvme/zkx/MetricsTestRunner/config/ipads-h20-1/new_clients_single_request.toml"
 # POLICIES=("bailian-impl-q" "bounded-most-hit-q" "least-wait-token-q" "round-robin-q")
 # POLICIES=("join-shortest-q-ttft" "least-wait-token-mul-bs")
-POLICIES=("join-shortest-q-ttft, no-decode-prediction")
+POLICIES=("join-shortest-q-ttft")
 # POLICIES=("least-wait-token-mul-bs")
 
 
