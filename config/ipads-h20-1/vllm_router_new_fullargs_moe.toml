@@ -23,6 +23,7 @@ num_blocks = "${num-blocks}"
 model_hash = "${model-hash}"
 predict_cache_path_prefix = "${predict-cache-path-prefix}"
 online_refine = false
+is_moe = true
 
 # ========== 路由器配置（不变）==========
 [app.router]
@@ -77,6 +78,7 @@ extra_args = ["--use-tokenizer"]
 "--predict-cache-path-prefix" = "predict_cache_path_prefix"
 "--kv-cache-prediction-granularity" = "kv_cache_prediction_granularity"
 "--flops-prediction-granularity" = "flops_prediction_granularity"
+"--is-moe" = "is_moe"
 [app.router.config]
 hostname = "localhost"
 port = "58009"
@@ -90,7 +92,7 @@ deploy_cfg = "${blitzdir}/exps/blitz-run/configs/config-router.json"
 log_path = "${output_dir}/router_v2.log"
 context_length = 15999
 total_tokens = 16000
-concurrent_req = 102400
+concurrent_req = 4096
 prefill_thpt = 13000
 network_thpt = 30000
 block_num = 8000
@@ -125,4 +127,4 @@ model_hash = "dcd79310"
 predict_cache_path_prefix = "/nvme/zkx/MetricsTestRunner/model_csv/"
 kv_cache_prediction_granularity = 128
 flops_prediction_granularity = 1024
-validation_worker = 10
+is_moe = "${is_moe}"
