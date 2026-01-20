@@ -371,5 +371,5 @@ echo "Experiment completed successfully!"
 echo "Results are available in: $OUTPUT_DIR"
 echo "You can inspect the tmux session using: tmux attach-session -t $SESSION_NAME"
 
-echo "python $WORK_DIR/ttft_cdf.py --log=$OUTPUT_DIR/router_v2.log --client=$OUTPUT_DIR/client_code_1.jsonl"
-python $WORK_DIR/ttft_cdf.py --log=$OUTPUT_DIR/router_v2.log --client=$OUTPUT_DIR/client_code_1.jsonl
+echo "python $SCRIPTS_DIR/ttft_cdf.py --log=$OUTPUT_DIR/router_v2.log --client=$OUTPUT_DIR/client_code_1.jsonl"
+python $SCRIPTS_DIR/ttft_cdf.py --log=$OUTPUT_DIR/router_v2.log --client=$OUTPUT_DIR/client_code_1.jsonl
