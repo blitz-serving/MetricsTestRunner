@@ -133,6 +133,7 @@ def plot_error_cdf(preds, reals, threshold=2000):
     plt.grid(alpha=0.3)
     plt.tight_layout()
     plt.show()
+    plt.savefig("comparison.png")
 
     # === 导出明细 CSV ===
     with open("ttft_error_details_split.csv", "w", encoding="utf-8") as f:

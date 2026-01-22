@@ -198,7 +198,7 @@ launch_experiment_session() {
         tmux new-window -t "$session_name" -n window1
         tmux send-keys -t "$session_name:window1" "$tmux_cmd && python ../../smart_runner.py --toml $config1 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir" C-m
         echo "python ../../smart_runner.py --toml $config1 --log-dir=$output_base --output-dir=$output_dir --model-path=$model_path --venv-path=$venv_path --work-dir=$work_dir --dataset-dir=$dataset_dir"
-        sleep 150
+        sleep 120
     fi
     
     # Launch router
@@ -371,5 +371,5 @@ echo "Experiment completed successfully!"
 echo "Results are available in: $OUTPUT_DIR"
 echo "You can inspect the tmux session using: tmux attach-session -t $SESSION_NAME"
 
-echo "python $SCRIPTS_DIR/ttft_cdf.py --log=$OUTPUT_DIR/router_v2.log --client=$OUTPUT_DIR/client_code_1.jsonl"
-python $SCRIPTS_DIR/ttft_cdf.py --log=$OUTPUT_DIR/router_v2.log --client=$OUTPUT_DIR/client_code_1.jsonl
+echo "python $SCRIPTS_DIR/ttft_cdf_split.py --log=$OUTPUT_DIR/router_v2.log --client=$OUTPUT_DIR/client_code_1.jsonl"
+python $SCRIPTS_DIR/ttft_cdf_split.py --log=$OUTPUT_DIR/router_v2.log --client=$OUTPUT_DIR/client_code_1.jsonl
