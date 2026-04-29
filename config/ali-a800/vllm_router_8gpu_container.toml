@@ -1,0 +1,41 @@
+# Router config for 8-GPU sweep (A800 container)
+
+[runtime.raw]
+config = [
+    { app = "router", envs = { RUST_BACKTRACE = "full", LOG_LEVEL = "info,cache_tracking=info" }, background = true, block_keyword = "Blitz router is ready" },
+]
+
+[variables]
+model_path = "${model-path}"
+blitzdir = "${work-dir}"
+output_dir = "${output-dir}"
+
+[app.router]
+executable = ["${blitzdir}/target/release/router"]
+extra_args = ["--use-tokenizer"]
+
+[app.router.macro_rules]
+"--hostname" = "hostname"
+"--port" = "port"
+"--client-config" = "cli_stub_cfg"
+"--tokenizer-name" = "tokenizer"
+"--model-name" = "model"
+"--log-path" = "log_path"
+"--max-input-length" = "context_length"
+"--max-total-tokens" = "total_tokens"
+"--max-concurrent-requests" = "concurrent_req"
+"--max-batch-prefill-tokens" = "mbpt"
+"--kvcache-block-size" = "block_size"
+
+[app.router.config]
+hostname = "localhost"
+port = "58009"
+model = "${model_path}"
+tokenizer = "${model_path}"
+cli_stub_cfg = "${blitzdir}/exps/blitz-run/configs/config-stubs.json"
+log_path = "${output_dir}/router_v2.log"
+context_length = 40959
+total_tokens = 40960
+concurrent_req = 4096
+mbpt = 81920
+block_size = 16

@@ -1,0 +1,29 @@
+# Cluster profile: a800-8gpu (8-GPU single-node, inside Docker container)
+# Container must be started with --gpus '"device=0,1,2,3,4,5,6,7"'
+# All 8 GPUs visible as indices 0-7 inside container
+
+[cluster]
+name = "a800-8gpu"
+gpu_type = "A800-SXM4-80GB"
+gpus_per_node = 8
+
+[cluster.local]
+venv_path = "/usr/local"
+work_dir = "/workspace/blitz-router"
+output_base = "/workspace/exps/metro"
+store_base = "/workspace/exps/metro"
+dataset_dir = "/workspace/tmp/bailian-traces"
+base_vllm_port = 8100
+
+[cluster.remote]
+ssh_port = 22
+user = "root"
+
+[cluster.models.qwen30b]
+local_path = "/nvme/models/Qwen3-30B-A3B"
+remote_path = "/nvme/models/Qwen3-30B-A3B"
+
+[cluster.defaults]
+attention_backend = "FLASHINFER"
+time_in_secs = 600
+gpu_memory_utilization = 0.9

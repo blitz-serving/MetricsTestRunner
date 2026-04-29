@@ -1,0 +1,44 @@
+# Client: Bailian trace replay for A800 container
+
+[runtime.raw]
+config = [
+    { app = "client_bailian", background = false },
+]
+
+[variables]
+model_path = "${model-path}"
+blitzdir = "${work-dir}"
+tokenizer_path = "${model-path}/tokenizer.json"
+client_executable = "/workspace/request-sim/target/release/request-sim"
+dataset_dir = "${dataset-dir}"
+output_dir = "${output-dir}"
+trace_name = "qwen_traceA_blksz_16.jsonl"
+
+[app.client_template]
+executable = ["${client_executable}"]
+extra_args = ["--mode", "trace-replay", "--stream"]
+
+[app.client_template.macro_rules]
+"--tokenizer" = "tokenizer"
+"--tokenizer-config" = "tokenizer_config"
+"--endpoint" = "endpoint"
+"--api" = "api"
+"--scale-factor" = "scale_factor"
+"--dataset" = "dataset_type"
+"--dataset-path" = "dataset_path"
+"--time-in-secs" = "time_in_secs"
+"--output-path" = "output_path"
+"--model-name" = "model_name"
+
+[app.client_bailian]
+inherit = "client_template"
+config.tokenizer = "${tokenizer_path}"
+config.tokenizer_config = "${model_path}/tokenizer_config.json"
+config.endpoint = "http://localhost:58009/v1/chat/completions"
+config.api = "openai"
+config.model_name = "${model_path}"
+config.scale_factor = 5.0
+config.dataset_type = "bailian"
+config.dataset_path = "${dataset_dir}/${trace_name}"
+config.time_in_secs = "${time-in-secs}"
+config.output_path = "${output_dir}/client.jsonl"

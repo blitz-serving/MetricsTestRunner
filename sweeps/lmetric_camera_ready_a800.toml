@@ -1,0 +1,44 @@
+# Camera-ready 7-policy sweep, Qwen3-30B-A3B, 8-GPU DP8, A800 single container.
+# Trace: qwen_traceA_blksz_16.jsonl  (~7200s span, divided by SF=3.9 -> ~1846s wall)
+# Per-policy yaullm restart is automatic: Experiment.run() cleanup_cluster()
+# fires in both Phase 2 (start) and Phase 6 (finally).
+
+[sweep]
+name = "lmetric_camera_ready_a800_traceA"
+description = "Camera-ready 7-policy sweep on qwen_traceA, SF=3.9, Qwen3-30B-A3B 8-GPU DP8"
+
+[sweep.cluster]
+profile = "a800-8gpu"
+model = "qwen30b"
+use_remote = false
+
+[sweep.grid]
+scaling_factor = [3.9]
+policy = [
+    "join-shortest-q-weight",
+    "bailian-impl-q",
+    "aibrix-q",
+    "dynamo-q",
+    "dynamo-decoupled-q",
+    "lmetric-q",
+    "preble-q",
+]
+
+[sweep.configs]
+backend = "config/ali-a800/launch_vllm_dp8_container.toml"
+router  = "config/ali-a800/vllm_router_8gpu_container.toml"
+client  = "config/ali-a800/client_bailian_container.toml"
+
+[sweep.configs.client_overrides]
+scale_factor = "${scaling_factor}"
+
+[sweep.execution]
+time_in_secs    = 1900
+max_retries     = 1
+retry_delay_secs = 30
+runs_per_combo  = 1
+
+[sweep.output]
+store_to_nfs              = false
+generate_comparison_plots = true
+tag_template              = "sf${scaling_factor}_traceA_camready"
