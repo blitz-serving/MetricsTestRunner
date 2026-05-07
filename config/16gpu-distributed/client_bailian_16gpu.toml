@@ -1,0 +1,45 @@
+# Client: Bailian trace replay for 16-GPU distributed test
+
+[runtime.raw]
+config = [
+    { app = "client", background = false },
+]
+
+[variables]
+model_path = "/home/admin/cpfs/zkx/Qwen--Qwen3-30B-A3B-Instruct-2507/"
+work_dir = "/home/admin/cpfs/zkx/code/blitz-router"
+work-dir = "/home/admin/cpfs/zkx/code/blitz-router"
+dataset_dir = "/home/admin/cpfs/zkx/qwen-bailian-usagetraces-anon"
+trace_name = "mooncake_toolagent_trace_poissoned.jsonl"
+client_executable = "/home/admin/cpfs/zkx/code/blitz-router/target/release/request-sim"
+output_dir = "${output-dir}"
+time_in_secs = "${time_in_secs}"
+
+[app.client_template]
+executable = ["${client_executable}"]
+extra_args = ["--mode", "trace-replay", "--stream"]
+
+[app.client_template.macro_rules]
+"--tokenizer" = "tokenizer"
+"--tokenizer-config" = "tokenizer_config"
+"--endpoint" = "endpoint"
+"--api" = "api"
+"--scale-factor" = "scale_factor"
+"--dataset" = "dataset_type"
+"--dataset-path" = "dataset_path"
+"--time-in-secs" = "time_in_secs"
+"--output-path" = "output_path"
+"--model-name" = "model_name"
+
+[app.client]
+inherit = "client_template"
+config.tokenizer = "${model_path}/tokenizer.json"
+config.tokenizer_config = "${model_path}/tokenizer_config.json"
+config.endpoint = "http://localhost:58009/v1/chat/completions"
+config.api = "openai"
+config.model_name = "${model_path}"
+config.scale_factor = 1.8
+config.dataset_type = "bailian"
+config.dataset_path = "${dataset_dir}/${trace_name}"
+config.time_in_secs = "${time_in_secs}"
+config.output_path = "${output_dir}/client.jsonl"

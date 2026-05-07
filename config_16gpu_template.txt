@@ -1,0 +1,68 @@
+# 16-GPU Distributed Test Configuration Template
+# Fill in the values below, then provide this file back to generate TOML configs and launch script.
+
+# =============================================================================
+# 1. SSH Connection (Peer Node)
+# =============================================================================
+# If ~/.ssh/config has a "Peer" entry, you can leave these as-is and I'll read it.
+
+~/.ssh/config has "Peer" entry
+
+# =============================================================================
+# 2. Model Paths
+# =============================================================================
+MODEL_PATH_LOCAL=/home/admin/cpfs/zkx/Qwen--Qwen3-30B-A3B-Instruct-2507/
+# =============================================================================
+# 3. Software Environment Paths
+# =============================================================================
+# Python virtual environment with vLLM/yaullm installed
+VENV_PATH_LOCAL=/home/admin/cpfs/zkx/code/yaullm/.venv/
+
+# vLLM executable (usually ${venv}/bin/vllm serve)
+VLLM_EXECUTABLE_LOCAL=/home/admin/cpfs/zkx/code/yaullm/.venv/bin/vllm
+
+# =============================================================================
+# 4. Router & Client Paths
+# =============================================================================
+# Router source/build directory (work-dir)
+WORK_DIR_LOCAL=/home/admin/cpfs/zkx/code/blitz-router/
+
+# Router binary (built with the chosen policy feature)
+ANSWER: You can infered based on WORK_DIR_LOCAL
+
+# Request-sim client binary
+ANSWER: You can infered based on WORK_DIR_LOCAL
+
+# =============================================================================
+# 5. Test Parameters
+# =============================================================================
+# Trace/dataset file path
+DATASET_DIR_LOCAL=/home/admin/cpfs/zkx/qwen-bailian-usagetraces-anon/
+TRACE_NAME= TraceA, TraceB, Coder, Mooncake
+
+# Routing policy to test (choose one)
+POLICY= Followed the description in docs
+# Test duration (seconds)
+TIME_IN_SEC=1200
+
+# Scale factor (load multiplier)
+- TraceA (toC): sc5.6, sc6.0, sc6.4, sc6.8, sc7.2
+- TraceB (toB): sc5.5, sc6.0, sc6.5, sc7.0, sc7.5
+- Coder (coder): sc2.0, sc2.2, sc2.4, sc2.6, sc2.8
+- Mooncake Tool (mooncake-tool): sc1.2, sc1.4, sc1.6, sc1.8
+# =============================================================================
+# 6. Output Directories
+# =============================================================================
+ANSWER: You can decide to put node1&node2 logs in the same dir but not the same name, or not in the same dir(but need to both locate in /home/admin/cpfs/xmetric/logs)
+OUTPUT_DIR_LOCAL=/home/admin/cpfs/xmetric/logs
+OUTPUT_DIR_REMOTE=/home/admin/cpfs/xmetric/logs
+
+# =============================================================================
+# 7. Additional Settings (optional, defaults usually work)
+# =============================================================================
+BASE_VLLM_PORT_LOCAL= 51000        # e.g., 8100 (ports 8100-8107 for local GPUs)
+BASE_VLLM_PORT_REMOTE= 51000       # e.g., 8100 (ports 8100-8107 for remote GPUs)
+ROUTER_PORT= 58009                 # e.g., 58009
+CONTEXT_LENGTH= 60000              # e.g., 40960 (match model's max_position_embeddings)
+GPU_MEMORY_UTILIZATION= 0.85      # e.g., 0.9
+ATTENTION_BACKEND= FLASHINFER           # e.g., FLASHINFER

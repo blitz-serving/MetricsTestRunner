@@ -1,4 +1,4 @@
-"""Process cleanup — local and remote process termination."""
+"""Process cleanup — tmux session termination (local and remote)."""
 
 from __future__ import annotations
 
@@ -6,79 +6,71 @@ import subprocess
 import time
 
 
-def kill_processes_by_pattern(pattern: str, description: str = ""):
-    """Kill local processes matching *pattern* (SIGTERM then SIGKILL)."""
-    label = description or pattern
-    print(f"Killing {label} processes (gracefully first)...")
+def kill_local_tmux_sessions(prefix: str = ""):
+    """Kill local tmux sessions whose name starts with *prefix*."""
+    label = prefix or "all"
+    print(f"Killing local tmux sessions ({label})...")
 
     result = subprocess.run(
-        ["pkill", "-f", pattern], capture_output=True, text=True,
+        ["tmux", "list-sessions", "-F", "#{session_name}"],
+        capture_output=True, text=True,
     )
-    if result.returncode == 0:
-        time.sleep(5)
-        alive = subprocess.run(
-            ["pkill", "-0", "-f", pattern], capture_output=True, text=True,
-        )
-        if alive.returncode == 0:
-            print(f"Some {label} processes still running; forcing kill...")
-            subprocess.run(["pkill", "-9", "-f", pattern], capture_output=True)
+    if result.returncode != 0:
+        print("  No tmux sessions found.")
+        return
+
+    for name in result.stdout.strip().split("\n"):
+        if not name:
+            continue
+        if prefix and not name.startswith(prefix):
+            continue
+        print(f"  Killing tmux session: {name}")
+        subprocess.run(["tmux", "kill-session", "-t", name], capture_output=True)
 
 
-def kill_remote_processes_by_pattern(
-    pattern: str,
+def kill_remote_tmux_sessions(
+    prefix: str,
     remote_ips: list[str],
     ssh_port: int = 22,
     ssh_user: str = "root",
-    description: str = "",
 ):
-    """Kill processes matching *pattern* on remote machines via SSH."""
-    label = description or pattern
-    print(f"Killing {label} on remote machines...")
+    """Kill remote tmux sessions matching *prefix* via SSH."""
+    print(f"Killing remote tmux sessions ({prefix})...")
 
     for ip in remote_ips:
         print(f"  Killing on {ip}...")
         cmd = (
             f"ssh -p {ssh_port} {ssh_user}@{ip} "
-            f"\"pkill -f '{pattern}' 2>/dev/null; "
-            f"sleep 5; pkill -9 -f '{pattern}' 2>/dev/null\" "
+            f'"for sess in $(tmux list-sessions -F \'#{{session_name}}\' 2>/dev/null | grep \'^{prefix}\'); do '
+            f'echo \"  Killing: $sess\"; tmux kill-session -t \"$sess\"; done" '
             f"2>/dev/null"
         )
         subprocess.run(cmd, shell=True, capture_output=True)
 
 
 def cleanup_cluster(
-    venv_path: str,
-    work_dir: str,
+    venv_path: str = "",
+    work_dir: str = "",
     remote_ips: list[str] | None = None,
     remote_venv_path: str | None = None,
     ssh_port: int = 22,
     ssh_user: str = "root",
+    local_session_prefix: str = "bailian",
+    remote_session_prefix: str = "metric_test_",
 ):
-    """Clean up all experiment processes on local and remote nodes.
+    """Clean up all experiment processes by killing tmux sessions.
 
-    This is the Python equivalent of ``cleanup_processes()`` from
-    ``bailian_dash_12_qwen235b.sh``.
+    Local session (e.g. \"bailian\") and remote sessions (e.g. \"metric_test_*\")
+    are terminated.  All child processes exit with the session.
     """
-    kill_processes_by_pattern(f"{venv_path}/bin/vllm", "vLLM")
-    kill_processes_by_pattern("multiprocessing.spawn", "vLLM workers")
-    kill_processes_by_pattern("multiprocessing.resource_tracker", "vLLM resource trackers")
-    kill_processes_by_pattern(f"{venv_path}/bin/python3 -s", "dead Python")
-    kill_processes_by_pattern("target/release/router", "router")
-    kill_processes_by_pattern("smart_runner.py", "smart runner")
-    kill_processes_by_pattern(f"{work_dir}/target/release/client", "client")
-    kill_processes_by_pattern("cpu_monitor.py", "CPU monitor")
+    kill_local_tmux_sessions(prefix=local_session_prefix)
 
-    if remote_ips and remote_venv_path:
-        kill_remote_processes_by_pattern(
-            f"{remote_venv_path}/bin/vllm",
-            remote_ips, ssh_port, ssh_user, "remote vLLM",
-        )
-        kill_remote_processes_by_pattern(
-            f"{remote_venv_path}/bin/python3 -s",
-            remote_ips, ssh_port, ssh_user, "remote dead Python",
+    if remote_ips:
+        kill_remote_tmux_sessions(
+            remote_session_prefix, remote_ips, ssh_port, ssh_user,
         )
 
-    time.sleep(5)
+    time.sleep(2)
     print("Cleanup complete.")
 
 
@@ -90,13 +82,4 @@ def cleanup_tmux_session(session_name: str):
     )
     if check.returncode == 0:
         print(f"Cleaning up tmux session '{session_name}'...")
-        # Send C-c to all panes
-        result = subprocess.run(
-            ["tmux", "list-panes", "-t", session_name, "-F", "#{pane_id}"],
-            capture_output=True, text=True,
-        )
-        for pane_id in result.stdout.strip().split("\n"):
-            if pane_id:
-                subprocess.run(["tmux", "send-keys", "-t", pane_id, "C-c"])
-        time.sleep(2)
-        subprocess.run(["tmux", "kill-session", "-t", session_name])
+        subprocess.run(["tmux", "kill-session", "-t", session_name], capture_output=True)

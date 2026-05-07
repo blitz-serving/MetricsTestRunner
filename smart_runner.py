@@ -359,7 +359,7 @@ def gen_ssh_cmd(app_cmd: str,
     remote_shell_cmd = (
         f"tmux kill-session -t {tmux_session_name} 2>/dev/null || true; "
         f"tmux new-session -d -s {tmux_session_name} '"
-        f"{escaped_app_cmd}; exec bash"
+        f"{escaped_app_cmd}"
         f"'"
     )
 
@@ -529,7 +529,7 @@ def main():
         # Run all apps in all runtimes
         for rt_name, rt_config in check_and_get_runtime(config):
             run_apps(rt=rt_name, rt_config=rt_config, app_config=config["app"], variables=variables)
-            
+
     except ValueError as e:
         print(f"Fail to run app: {e}")
     except KeyboardInterrupt as e:
@@ -537,6 +537,10 @@ def main():
     except Exception as e:
         print(f"Error: {e}")
     finally:
+        # Skip cleanup if SMART_RUNNER_NO_CLEANUP is set (e.g., for long-running services)
+        if os.environ.get("SMART_RUNNER_NO_CLEANUP"):
+            print("SMART_RUNNER_NO_CLEANUP set, skipping process cleanup")
+            return
         for proc in background_procs:
             try:
                 os.killpg(os.getpgid(proc.pid), signal.SIGTERM)

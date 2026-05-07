@@ -1,0 +1,59 @@
+# Backend: 16 vLLM instances (8 local + 8 remote via SSH)
+# Local: GPUs 0-7 on this machine
+# Remote: GPUs 0-7 on Peer (172.27.122.6)
+
+[runtime.raw]
+config = [
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "0", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 0 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "1", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 1 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "2", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 2 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "3", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 3 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "4", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 4 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "5", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 5 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "6", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 6 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "7", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 7 },
+]
+
+[runtime.ssh_0]
+config = [
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "0", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 0 },
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "1", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 1 },
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "2", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 2 },
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "3", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 3 },
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "4", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 4 },
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "5", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 5 },
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "6", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = true, port_offset = 6 },
+    { app = "vllm_remote_template", envs = { CUDA_VISIBLE_DEVICES = "7", VLLM_ATTENTION_BACKEND = "FLASHINFER", TORCH_CUDA_ARCH_LIST = "9.0", PYTHONHASHSEED = 42, VLLM_USE_FLASHINFER_SAMPLER = 0, OMP_NUM_THREADS = 1 }, background = false, port_offset = 7 },
+]
+
+[variables]
+model_path = "/home/admin/cpfs/zkx/Qwen--Qwen3-30B-A3B-Instruct-2507/"
+vllm_executable = "/home/admin/cpfs/zkx/code/yaullm/.venv/bin/vllm"
+work_dir = "/home/admin/cpfs/zkx/code/blitz-router"
+base_vllm_port = 51000
+remote_base_vllm_port = 51000
+remote_ips = ["172.27.122.6"]
+remote_user = "root"
+remote_ssh_port = 10022
+work-dir = "/home/admin/cpfs/zkx/code/blitz-router"
+output_dir = "${output-dir}"
+remote_output_dir = "${remote-output-dir}"
+
+[app.vllm_template]
+executable = ["${vllm_executable}", "serve"]
+extra_args = [
+    "${model_path}",
+    "--port", "${port}",
+    "--max-model-len", "60000",
+    "--max-num-seqs", "256",
+    "--block-size", "16",
+    "--enable-prefix-caching",
+    "--gpu-memory-utilization", "0.85",
+    "--trust-remote-code",
+    "--disable-log-requests",
+    "> ${log_file} 2>&1"
+]
+
+
+[app.vllm_remote_template]
+inherit = "vllm_template"
