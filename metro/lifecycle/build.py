@@ -69,7 +69,7 @@ def build_client(
     """Build the request simulator client."""
     print("Building request-sim client...")
 
-    cmd = ["cargo", "build", "-p", "request-sim", "--bin", "client", "-j64"]
+    cmd = ["cargo", "build", "-p", "request-sim", "--bin", "request-sim", "-j64"]
     if release:
         cmd.append("--release")
     if not verbose:

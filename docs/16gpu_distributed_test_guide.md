@@ -49,7 +49,7 @@ ssh -p 10022 root@172.27.122.6 "echo OK"
 | **vLLM executable** | `/home/admin/cpfs/zkx/code/yaullm/.venv/bin/vllm` | Same |
 | **Router source** | `/home/admin/cpfs/zkx/code/blitz-router/` | Same |
 | **Router binary** | `${WORK_DIR}/target/release/router_<policy>` | N/A (runs local) |
-| **Client binary** | `${WORK_DIR}/target/release/client` | N/A (runs local) |
+| **Client binary** | `${WORK_DIR}/target/release/request-sim` | N/A (runs local) |
 | **Trace data** | `/home/admin/cpfs/zkx/qwen-bailian-usagetraces-anon/` | Same |
 | **Output (local)** | `/home/admin/cpfs/xmetric/logs/node1/<timestamp>_<policy>/` | N/A |
 | **Output (remote)** | N/A | `/home/admin/cpfs/xmetric/logs/node2/<timestamp>_<policy>/` |
@@ -78,8 +78,47 @@ Available policies (from sweep results on `qwen_traceA_blksz_16.jsonl`):
 |-----------|--------|-------|
 | `blitz-router` (router) | `lmetric/camera-ready` | Build with `cargo build -p router --release --features <policy>` |
 | `yaullm` (vLLM fork) | `lmetric/step-reporter-v2` | Baseline commit: `9e1d6c4ea` |
-| `request-sim` | `develop` | Part of `blitz-router` workspace |
-| `MetricsTestRunner` | `metro/agent-skill` | Current working branch |
+| `request-sim` | `develop` | Part of `blitz-router` workspace; **MUST be at `8a265cb` or later** — older binaries silently drop axum SSE chunks and record `token_count=0` / no `first_token_time` for every request through the router (PR [#27](https://github.com/blitz-serving/request-sim/pull/27)). |
+| `MetricsTestRunner` | `metro/version-to-debug` | This branch |
+
+## Prerequisites (host / container)
+
+Two install pre-conditions are easy to miss and silently make the run useless. **Verify both before launching the sweep.**
+
+### 1. FlashInfer ≥ 0.2.8
+
+yaullm's V1 FlashInfer backend (`vllm/v1/attention/backends/flashinfer.py`) calls `MultiLevelCascadeAttentionWrapper.plan(..., kv_data_type=...)`. That kwarg was only **added to FlashInfer in [PR #1350](https://github.com/flashinfer-ai/flashinfer/pull/1350) (merged 2025-07-30, released in 0.2.8)**. With an older FlashInfer the engine crashes the moment cascade attention activates (a workload-pattern-triggered batch with long shared prefix), giving:
+
+```
+TypeError: MultiLevelCascadeAttentionWrapper.plan() got an unexpected keyword argument 'kv_data_type'
+```
+
+The crash is per-instance and probabilistic — under load, instances drop one-by-one as their batch composition happens to trigger cascade. Nothing in the metro/router log will tell you this is a FlashInfer issue.
+
+Verify and upgrade:
+```bash
+python3 -c "import flashinfer; print(flashinfer.__version__)"   # must be >= 0.2.8
+pip install -U "flashinfer-python>=0.2.8"
+```
+
+(Cross-reference: [vllm#21822](https://github.com/vllm-project/vllm/issues/21822) — same TypeError reported there.)
+
+### 2. request-sim binary at `8a265cb` or later
+
+The request-sim binary built from a commit before `8a265cb` (origin/develop, 2026-05-08) has two known SSE-parsing bugs that produce **0% TTFT capture** when traffic goes through any axum-based router (i.e. blitz-router):
+
+1. Strict `data: ` (with space) prefix — drops every chunk emitted by axum's `Sse` (which writes `data:` without space). Both forms are valid per spec.
+2. Counts the OAI role-announcement chunk as the first token, pulling TTFT down to queue/network latency.
+
+Verify and rebuild:
+```bash
+cd /home/admin/cpfs/zkx/code/blitz-router    # or wherever request-sim lives in your workspace
+git -C request-sim rev-parse HEAD             # must include 8a265cb (origin/develop tip on or after 2026-05-08)
+cargo build -p request-sim --release
+sha256sum target/release/request-sim          # record this in your run log
+```
+
+**If both prerequisites pass, the sweep should run end-to-end with TTFT/TPOT correctly populated.** If either fails, the symptoms (0 TTFT, or per-instance 500 errors mid-sweep) are silent — there is no clear error in the metro log.
 
 ---
 
@@ -133,7 +172,7 @@ ATTENTION_BACKEND=
 
 From `WORK_DIR_LOCAL`, infer:
 - Router binary: `${WORK_DIR_LOCAL}/target/release/router`
-- Client binary: `${WORK_DIR_LOCAL}/target/release/client` (NOT `request-sim` — the binary is named `client`)
+- Client binary: `${WORK_DIR_LOCAL}/target/release/request-sim` (built from the `request-sim` crate inside the blitz-router workspace; bin name is `request-sim`)
 
 ### Step 3: Verify remote paths
 
@@ -267,7 +306,7 @@ model_path = "${MODEL_PATH_LOCAL}"
 work_dir = "${WORK_DIR_LOCAL}"
 dataset_dir = "${DATASET_DIR_LOCAL}"
 trace_name = "${TRACE_NAME}"
-client_executable = "${work_dir}/target/release/client"
+client_executable = "${work_dir}/target/release/request-sim"
 
 [app.client_template]
 executable = ["${client_executable}"]
@@ -344,7 +383,7 @@ The script will:
 | 3 | `--max-batch-prefill-tokens < --max-input-length` | Set `mbpt >= context_length * 2` |
 | 4 | Router's `--model-name` ≠ vLLM's `--model` | Must match exactly (404 otherwise) |
 | 5 | `--kv-cache-block-size` is router-only | vLLM uses `--block-size` |
-| 6 | Client binary name | It's `client`, NOT `request-sim` |
+| 6 | Client binary name | It's `request-sim` (not `client` — earlier docs were wrong) |
 | 7 | Remote vLLM startup timeout | Check remote logs, ensure model exists on remote |
 | 8 | CONTEXT_LENGTH mismatch | Must match model's `max_position_embeddings` |
 | 9 | **Missing required env vars** | Every vLLM app needs `TORCH_CUDA_ARCH_LIST`, `PYTHONHASHSEED`, `VLLM_USE_FLASHINFER_SAMPLER`, `OMP_NUM_THREADS` |
