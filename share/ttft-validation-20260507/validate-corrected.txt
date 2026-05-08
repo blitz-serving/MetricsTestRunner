@@ -1,0 +1,42 @@
+
+================================================================================
+G1-G8 Validation: /workspace/exps/lmetric/ttft-validation-20260507/metro-30min-corrected/client.jsonl
+================================================================================
+Gate  Pass   Description                                             Detail
+----- ------ ------------------------------------------------------- ----------------------------------------
+G1    PASS   total >= 50                                             total=28865
+G2    FAIL   >=99% status:200                                        21264/28865 = 73.67%
+G3    FAIL   100% of 200 have first_token_time                       19699/21264 = 92.64%
+G4    FAIL   >=95% of 200 have token_count>=2                        19699/21264 = 92.64%
+G5    FAIL   >=95% of 200 have total_time                            19699/21264 = 92.64%
+G6    PASS   TTFT p50 in [0.5,5000]ms, p99 in [0.5,30000]ms          p50=148.3ms p99=11117.1ms
+G7    PASS   TPOT p50 in [5,200]ms                                   p50=50.4ms p99=72.2ms
+G8    PASS   TTFT cross-check (random vs trace) — N/A (trace-replay only per user spec) skipped
+
+================================================================================
+OVERALL: FAIL
+================================================================================
+
+--- Summary file (/workspace/exps/lmetric/ttft-validation-20260507/metro-30min-corrected/client.jsonl.summary.json) ---
+{
+  "duration_ms": "1904223.019",
+  "e2e_mean_ms": "25913.656",
+  "e2e_p90_ms": "50754.425",
+  "e2e_p95_ms": "62975.572",
+  "e2e_p99_ms": "95001.477",
+  "output_tokens_total": "12176140",
+  "requests_success": "21264",
+  "requests_total": "28865",
+  "throughput_rps": "15.158",
+  "throughput_tps": "6394.283",
+  "tpot_mean_ms": "74.868",
+  "tpot_p90_ms": "93.416",
+  "tpot_p95_ms": "147.580",
+  "tpot_p99_ms": "543.765",
+  "tps_mean": "219.584",
+  "ttft_mean_ms": "1127.810",
+  "ttft_p90_ms": "4023.127",
+  "ttft_p95_ms": "6172.488",
+  "ttft_p99_ms": "11202.012"
+}
+

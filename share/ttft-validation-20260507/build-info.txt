@@ -1,0 +1,53 @@
+Build provenance for the corrected 30-min validation run
+========================================================
+Date: 2026-05-08 (CST) / 2026-05-07 (PDT)
+Container: zdy-yaullm-metro-8gpu  (image: metro-node:lmetric-step-reporter-v2)
+
+git HEADs at run time
+---------------------
+  blitz-router          : a310e3a (lmetric/camera-ready)
+  request-sim           : (synced to commit on origin/develop containing the
+                           two PR #27 fixes; PR was merged onto develop after
+                           push of fix/openai-sse-parser-and-role-chunk)
+                           — for ground truth verify on host:
+                             git -C /workspace/request-sim rev-parse HEAD
+  MetricsTestRunner     : metro/agent-skill @ c2c8812 (local; mirrors
+                           metro/version-to-debug @ ee287f7)
+  yaullm (vLLM fork)    : 9e1d6c4ea (lmetric/step-reporter-v2; pre-installed)
+
+Built binaries (sha256, paths inside container)
+-----------------------------------------------
+  /workspace/blitz-router/target/release/router
+    cargo: cargo build -p router --release --features lmetric-q
+                       (NO --features simulator)
+    sha256: see /workspace/exps/lmetric/ttft-validation-20260507/build-info.txt
+
+  /workspace/request-sim/target/release/request-sim
+    cargo: cargo build --release  (default features = prompt-text-hashed)
+    sha256: see same file
+
+Container packages (changed)
+----------------------------
+  flashinfer-python : 0.2.7.post1 -> 0.6.10.post1 (pip install -U "flashinfer-python>=0.2.8")
+
+Run command (verbatim)
+----------------------
+  cd /workspace/MetricsTestRunner
+  python3 -m metro run \
+      --cluster a800-8gpu --model qwen30bi \
+      --backend config/ali-a800/launch_vllm_dp8_container.toml \
+      --router  config/ali-a800/vllm_router_8gpu_container.toml \
+      --client  config/ali-a800/client_bailian_container.toml \
+      --policy  lmetric-q \
+      --time    1800 \
+      --no-remote \
+      --set     scale-factor=3.0 \
+      --output-dir /workspace/exps/lmetric/ttft-validation-20260507/metro-30min-corrected
+
+Result
+------
+  Status   : success
+  Duration : 2056.7 s
+  Records  : 28865 (status:200 = 21264, timeout = 7601)
+  Of 200s, with first_token_time : 19699 (92.6%)
+  All 8 vLLM EngineCore fatal=0  Traceback=0

@@ -1,0 +1,42 @@
+
+================================================================================
+G1-G8 Validation: /workspace/exps/lmetric/ttft-validation-20260507/metro-30min/client.jsonl
+================================================================================
+Gate  Pass   Description                                             Detail
+----- ------ ------------------------------------------------------- ----------------------------------------
+G1    PASS   total >= 50                                             total=29159
+G2    FAIL   >=99% status:200                                        11624/29159 = 39.86%
+G3    PASS   100% of 200 have first_token_time                       11624/11624 = 100.00%
+G4    FAIL   >=95% of 200 have token_count>=2                        5749/11624 = 49.46%
+G5    PASS   >=95% of 200 have total_time                            11624/11624 = 100.00%
+G6    PASS   TTFT p50 in [0.5,5000]ms, p99 in [0.5,30000]ms          p50=34.6ms p99=91.4ms
+G7    PASS   TPOT p50 in [5,200]ms                                   p50=60.0ms p99=760.0ms
+G8    PASS   TTFT cross-check (random vs trace) — N/A (trace-replay only per user spec) skipped
+
+================================================================================
+OVERALL: FAIL
+================================================================================
+
+--- Summary file (/workspace/exps/lmetric/ttft-validation-20260507/metro-30min/client.jsonl.summary.json) ---
+{
+  "duration_ms": "2026197.059",
+  "e2e_mean_ms": "28972.207",
+  "e2e_p90_ms": "54618.632",
+  "e2e_p95_ms": "67268.514",
+  "e2e_p99_ms": "99872.877",
+  "output_tokens_total": "12300179",
+  "requests_success": "11624",
+  "requests_total": "29159",
+  "throughput_rps": "14.391",
+  "throughput_tps": "6070.574",
+  "tpot_mean_ms": "90.156",
+  "tpot_p90_ms": "123.134",
+  "tpot_p95_ms": "228.451",
+  "tpot_p99_ms": "903.557",
+  "tps_mean": "825.322",
+  "ttft_mean_ms": "28.743",
+  "ttft_p90_ms": "47.824",
+  "ttft_p95_ms": "59.523",
+  "ttft_p99_ms": "91.444"
+}
+
