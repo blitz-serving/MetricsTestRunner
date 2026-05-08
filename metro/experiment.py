@@ -111,7 +111,7 @@ class Experiment:
             print(f"\n{'='*60}")
             print(f"PHASE 5: Running client")
             print(f"{'='*60}")
-            client_binary = f"{profile.local.work_dir}/target/release/client"
+            client_binary = f"{profile.local.work_dir}/target/release/request-sim"
             run_client(
                 client_toml=self.config.client_toml,
                 variables=variables,

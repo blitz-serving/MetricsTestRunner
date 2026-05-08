@@ -23,6 +23,10 @@ user = "root"
 local_path = "/nvme/models/Qwen3-30B-A3B"
 remote_path = "/nvme/models/Qwen3-30B-A3B"
 
+[cluster.models.qwen30bi]
+local_path = "/models/Qwen3-30B-A3B-Instruct"
+remote_path = "/models/Qwen3-30B-A3B-Instruct"
+
 [cluster.defaults]
 attention_backend = "FLASHINFER"
 time_in_secs = 600

@@ -3,14 +3,14 @@
 
 [runtime.raw]
 config = [
-    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "0", VLLM_ATTENTION_BACKEND = "FLASHINFER" }, background = true, port_offset = 0 },
-    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "1", VLLM_ATTENTION_BACKEND = "FLASHINFER" }, background = true, port_offset = 1 },
-    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "2", VLLM_ATTENTION_BACKEND = "FLASHINFER" }, background = true, port_offset = 2 },
-    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "3", VLLM_ATTENTION_BACKEND = "FLASHINFER" }, background = true, port_offset = 3 },
-    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "4", VLLM_ATTENTION_BACKEND = "FLASHINFER" }, background = true, port_offset = 4 },
-    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "5", VLLM_ATTENTION_BACKEND = "FLASHINFER" }, background = true, port_offset = 5 },
-    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "6", VLLM_ATTENTION_BACKEND = "FLASHINFER" }, background = true, port_offset = 6 },
-    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "7", VLLM_ATTENTION_BACKEND = "FLASHINFER" }, background = true, port_offset = 7 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "0", VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_REPORT_METRICS = "1", VLLM_SSE_MODE = "full" }, background = true, port_offset = 0 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "1", VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_REPORT_METRICS = "1", VLLM_SSE_MODE = "full" }, background = true, port_offset = 1 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "2", VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_REPORT_METRICS = "1", VLLM_SSE_MODE = "full" }, background = true, port_offset = 2 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "3", VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_REPORT_METRICS = "1", VLLM_SSE_MODE = "full" }, background = true, port_offset = 3 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "4", VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_REPORT_METRICS = "1", VLLM_SSE_MODE = "full" }, background = true, port_offset = 4 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "5", VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_REPORT_METRICS = "1", VLLM_SSE_MODE = "full" }, background = true, port_offset = 5 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "6", VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_REPORT_METRICS = "1", VLLM_SSE_MODE = "full" }, background = true, port_offset = 6 },
+    { app = "vllm_template", envs = { CUDA_VISIBLE_DEVICES = "7", VLLM_ATTENTION_BACKEND = "FLASHINFER", VLLM_REPORT_METRICS = "1", VLLM_SSE_MODE = "full" }, background = true, port_offset = 7 },
 ]
 
 [variables]
@@ -30,7 +30,6 @@ extra_args = [
     "--max-num-seqs", "256",
     "--block-size", "16",
     "--enable-prefix-caching",
-    "--enforce-eager",
     "--gpu-memory-utilization", "0.9",
     "--trust-remote-code",
     "--disable-log-requests",
