@@ -14,19 +14,45 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$SCRIPT_DIR"
 
+AE_ENV_FILE="${AE_ENV_FILE:-$SCRIPT_DIR/ae.env}"
+if [ -f "$AE_ENV_FILE" ]; then
+    # shellcheck disable=SC1090
+    set -a
+    . "$AE_ENV_FILE"
+    set +a
+fi
+
 # -----------------------------------------------------------------------------
 # Configuration
 # -----------------------------------------------------------------------------
-MODEL_PATH="/home/admin/cpfs/zkx/Qwen--Qwen3-30B-A3B-Instruct-2507/"
-VENV_PATH="/home/admin/cpfs/zkx/code/yaullm/.venv"
-WORK_DIR="/home/admin/cpfs/zkx/code/blitz-router"
-DATASET_DIR="/home/admin/cpfs/zkx/qwen-bailian-usagetraces-anon"
-OUTPUT_BASE="/home/admin/cpfs/xmetric/logs"
+AE_ROOT="${AE_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+MODEL_PATH="${MODEL_PATH:-${MODEL_PATH_30B:-}}"
+MODEL_PATH_30B="${MODEL_PATH_30B:-$MODEL_PATH}"
+MODEL_PATH_7B="${MODEL_PATH_7B:-$MODEL_PATH_30B}"
+MODEL_PATH_TRACE_A="${MODEL_PATH_TRACE_A:-$MODEL_PATH_30B}"
+MODEL_PATH_TRACE_B="${MODEL_PATH_TRACE_B:-$MODEL_PATH_7B}"
+MODEL_PATH_CODER="${MODEL_PATH_CODER:-$MODEL_PATH_30B}"
+MODEL_PATH_MOONCAKE="${MODEL_PATH_MOONCAKE:-$MODEL_PATH_30B}"
+REMOTE_MODEL_PATH_30B="${REMOTE_MODEL_PATH_30B:-$MODEL_PATH_30B}"
+REMOTE_MODEL_PATH_7B="${REMOTE_MODEL_PATH_7B:-$MODEL_PATH_7B}"
+REMOTE_MODEL_PATH_TRACE_A="${REMOTE_MODEL_PATH_TRACE_A:-$REMOTE_MODEL_PATH_30B}"
+REMOTE_MODEL_PATH_TRACE_B="${REMOTE_MODEL_PATH_TRACE_B:-$REMOTE_MODEL_PATH_7B}"
+REMOTE_MODEL_PATH_CODER="${REMOTE_MODEL_PATH_CODER:-$REMOTE_MODEL_PATH_30B}"
+REMOTE_MODEL_PATH_MOONCAKE="${REMOTE_MODEL_PATH_MOONCAKE:-$REMOTE_MODEL_PATH_30B}"
+VENV_PATH="${VENV_PATH:-$AE_ROOT/yaullm/.venv}"
+VLLM_EXECUTABLE="${VLLM_EXECUTABLE:-$VENV_PATH/bin/vllm}"
+REMOTE_VENV_PATH="${REMOTE_VENV_PATH:-$VENV_PATH}"
+REMOTE_VLLM_EXECUTABLE="${REMOTE_VLLM_EXECUTABLE:-$REMOTE_VENV_PATH/bin/vllm}"
+WORK_DIR="${WORK_DIR:-$AE_ROOT/blitz-router}"
+DATASET_DIR="${DATASET_DIR:-}"
+OUTPUT_BASE="${OUTPUT_BASE:-$AE_ROOT/slow-path-logs}"
+REMOTE_OUTPUT_BASE="${REMOTE_OUTPUT_BASE:-$OUTPUT_BASE}"
+CARGO_JOBS="${CARGO_JOBS:-$(nproc)}"
 
 # SSH
-REMOTE_HOST="172.27.122.6"
-REMOTE_USER="root"
-REMOTE_SSH_PORT=10022
+REMOTE_HOST="${REMOTE_HOST:-}"
+REMOTE_USER="${REMOTE_USER:-root}"
+REMOTE_SSH_PORT="${REMOTE_SSH_PORT:-22}"
 
 # Timing per run
 TIME_IN_SEC=${TIME_IN_SEC:-1200}
@@ -40,6 +66,30 @@ FORCE_GPU_RESET=${FORCE_GPU_RESET:-0}
 CONFIG_BACKEND="$SCRIPT_DIR/config/16gpu-distributed/launch_vllm_16gpu.toml"
 CONFIG_ROUTER="$SCRIPT_DIR/config/16gpu-distributed/vllm_router_16gpu.toml"
 CONFIG_CLIENT="$SCRIPT_DIR/config/16gpu-distributed/client_bailian_16gpu.toml"
+
+require_setting() {
+    local name="$1"
+    local value="$2"
+    if [ -z "$value" ]; then
+        echo "ERROR: $name is not set. Copy ae.env.example to ae.env and edit it for this cluster." >&2
+        exit 1
+    fi
+}
+
+require_setting MODEL_PATH_30B "$MODEL_PATH_30B"
+require_setting DATASET_DIR "$DATASET_DIR"
+require_setting REMOTE_HOST "$REMOTE_HOST"
+mkdir -p "$WORK_DIR/exps/blitz-run/configs"
+
+SMART_RUNNER_ARGS=(
+    "--vllm-executable=$VLLM_EXECUTABLE"
+    "--work-dir=$WORK_DIR"
+    "--dataset-dir=$DATASET_DIR"
+    "--remote-host=$REMOTE_HOST"
+    "--remote-user=$REMOTE_USER"
+    "--remote-ssh-port=$REMOTE_SSH_PORT"
+    "--remote-vllm-executable=$REMOTE_VLLM_EXECUTABLE"
+)
 
 # -----------------------------------------------------------------------------
 # Test Matrix: 7 policies × 4 traces × 5 scale factors = 133 runs
@@ -198,6 +248,58 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
 }
 
+policy_to_feature() {
+    case "$1" in
+        # Historical sweep/result name. The router crate's canonical feature
+        # uses "weight-q"; keep the output policy name stable for comparisons.
+        join-shortest-q-weight|jsq-weight|vllm-jsq-weight)
+            echo "join-shortest-weight-q"
+            ;;
+        # Historical sweep/result name for Dynamo's decoupled prefill-node
+        # formula. The router crate's canonical feature is "dynamo-po-q".
+        dynamo-decoupled-q)
+            echo "dynamo-po-q"
+            ;;
+        *)
+            echo "$1"
+            ;;
+    esac
+}
+
+model_path_for_trace() {
+    case "$1" in
+        qwen_traceB_blksz_16.jsonl)
+            echo "$MODEL_PATH_TRACE_B"
+            ;;
+        anony-qwen3-coder-20251118-14-16.jsonl)
+            echo "$MODEL_PATH_CODER"
+            ;;
+        mooncake_toolagent_trace_poissoned.jsonl)
+            echo "$MODEL_PATH_MOONCAKE"
+            ;;
+        *)
+            echo "$MODEL_PATH_TRACE_A"
+            ;;
+    esac
+}
+
+remote_model_path_for_trace() {
+    case "$1" in
+        qwen_traceB_blksz_16.jsonl)
+            echo "$REMOTE_MODEL_PATH_TRACE_B"
+            ;;
+        anony-qwen3-coder-20251118-14-16.jsonl)
+            echo "$REMOTE_MODEL_PATH_CODER"
+            ;;
+        mooncake_toolagent_trace_poissoned.jsonl)
+            echo "$REMOTE_MODEL_PATH_MOONCAKE"
+            ;;
+        *)
+            echo "$REMOTE_MODEL_PATH_TRACE_A"
+            ;;
+    esac
+}
+
 cleanup_vllm() {
     log "Cleaning up vLLM processes (local)..."
     if command -v nvidia-smi >/dev/null 2>&1; then
@@ -246,7 +348,7 @@ cleanup_vllm() {
          pkill -9 -f 'smart_runner.py' 2>/dev/null || true;
          pkill -9 -f 'router --hostname' 2>/dev/null || true;
          pkill -9 -f 'request-sim' 2>/dev/null || true;
-         pkill -9 -f '$VENV_PATH/bin/python' 2>/dev/null || true;
+         pkill -9 -f '$REMOTE_VENV_PATH/bin/python' 2>/dev/null || true;
          for port in \$(seq 51000 51015) 58009 22281; do
              command -v fuser >/dev/null 2>&1 && fuser -k -9 \${port}/tcp 2>/dev/null || true;
          done;
@@ -351,30 +453,52 @@ run_single_test() {
     timestamp=$(date +%Y%m%d-%H%M%S)
     local trace_short
     trace_short=$(echo "$trace_name" | sed 's/\.jsonl$//' | sed 's/_blksz_16//' | sed 's/anony-//' | sed 's/qwen_//' | sed 's/-/./g')
-    local output_base_run="${OUTPUT_BASE}/${timestamp}_${trace_short}_${policy}"
+    local scale_factor_tag="sc${scale_factor}"
+    local run_name="${timestamp}_${trace_short}_${policy}_${scale_factor_tag}"
+    local output_base_run="${OUTPUT_BASE}/${run_name}"
+    local remote_output_base_run="${REMOTE_OUTPUT_BASE}/${run_name}"
     local output_dir_local=""
     local output_dir_remote=""
+    local router_feature
+    router_feature=$(policy_to_feature "$policy")
+    local run_model_path
+    run_model_path=$(model_path_for_trace "$trace_name")
+    if [ -z "$run_model_path" ]; then
+        log "ERROR: No model path configured for trace=$trace_name"
+        return 1
+    fi
+    local remote_run_model_path
+    remote_run_model_path=$(remote_model_path_for_trace "$trace_name")
+    if [ -z "$remote_run_model_path" ]; then
+        log "ERROR: No remote model path configured for trace=$trace_name"
+        return 1
+    fi
+    local smart_runner_args=("--model-path=$run_model_path" "--remote-model-path=$remote_run_model_path" "${SMART_RUNNER_ARGS[@]}")
 
     log "============================================================"
     log "Run $((run_index + 1))/$TOTAL: policy=$policy trace=$trace_short SF=$scale_factor"
     log "Output base: $output_base_run"
+    log "Remote output base: $remote_output_base_run"
+    log "Model path: $run_model_path"
+    log "Remote model path: $remote_run_model_path"
+    if [ "$router_feature" != "$policy" ]; then
+        log "Router feature: $router_feature"
+    fi
     log "============================================================"
 
-    # Build router for current policy
-    log "Building router for policy=$policy..."
-    if ! (cd "$WORK_DIR" && cargo build -p router --release --features "$policy" --quiet); then
-        log "ERROR: Router build failed for policy=$policy. Skipping this run."
+    # Build request-sim for current run so the sweep never reuses a stale client binary.
+    log "Building request-sim client..."
+    if ! (cd "$WORK_DIR" && cargo build -p request-sim --release -j "$CARGO_JOBS" --quiet); then
+        log "ERROR: request-sim build failed. Skipping this run."
         cleanup_vllm
         return 1
     fi
 
-    # Update client TOML with current trace and scale factor
-    if ! sed -i "s|trace_name = \".*\"|trace_name = \"${trace_name}\"|" "$CONFIG_CLIENT"; then
-        log "ERROR: Failed to update trace_name in $CONFIG_CLIENT"
-        return 1
-    fi
-    if ! sed -i "s|config.scale_factor = .*|config.scale_factor = ${scale_factor}|" "$CONFIG_CLIENT"; then
-        log "ERROR: Failed to update scale_factor in $CONFIG_CLIENT"
+    # Build router for current policy
+    log "Building router for policy=$policy feature=$router_feature..."
+    if ! (cd "$WORK_DIR" && cargo build -p router --release --features "$router_feature" -j "$CARGO_JOBS" --quiet); then
+        log "ERROR: Router build failed for policy=$policy feature=$router_feature. Skipping this run."
+        cleanup_vllm
         return 1
     fi
 
@@ -382,7 +506,7 @@ run_single_test() {
     local backend_started=false
     for attempt in $(seq 1 "$VLLM_STARTUP_MAX_RETRIES"); do
         output_dir_local="${output_base_run}/attempt${attempt}/node1"
-        output_dir_remote="${output_base_run}/attempt${attempt}/node2"
+        output_dir_remote="${remote_output_base_run}/attempt${attempt}/node2"
 
         log "Pre-attempt cleanup (${attempt}/${VLLM_STARTUP_MAX_RETRIES})..."
         cleanup_vllm
@@ -391,7 +515,8 @@ run_single_test() {
         SMART_RUNNER_NO_CLEANUP=1 "$VENV_PATH/bin/python" "$PROJECT_ROOT/smart_runner.py" \
             --toml "$CONFIG_BACKEND" \
             --output-dir="$output_dir_local" \
-            --remote-output-dir="$output_dir_remote" &
+            --remote-output-dir="$output_dir_remote" \
+            "${smart_runner_args[@]}" &
         backend_pid=$!
 
         if wait_for_vllm_startup "$output_dir_local" && wait_for_remote_vllm_startup "$output_dir_remote"; then
@@ -418,7 +543,8 @@ run_single_test() {
     log "Starting router..."
     "$VENV_PATH/bin/python" "$PROJECT_ROOT/smart_runner.py" \
         --toml "$CONFIG_ROUTER" \
-        --output-dir="$output_dir_local" &
+        --output-dir="$output_dir_local" \
+        "${smart_runner_args[@]}" &
     local router_pid=$!
 
     sleep $ROUTER_WAIT_TIME
@@ -436,7 +562,10 @@ run_single_test() {
     "$VENV_PATH/bin/python" "$PROJECT_ROOT/smart_runner.py" \
         --toml "$CONFIG_CLIENT" \
         --output-dir="$output_dir_local" \
-        --time_in_secs="$time_in_sec" &
+        --time_in_secs="$time_in_sec" \
+        --trace-name="$trace_name" \
+        --scale-factor="$scale_factor" \
+        "${smart_runner_args[@]}" &
     local client_pid=$!
 
     # Wait for experiment
@@ -505,6 +634,7 @@ echo "Sweep started: $(date)" > "$OUTPUT_BASE/sweep_log.txt"
 echo "Total runs: $TOTAL" >> "$OUTPUT_BASE/sweep_log.txt"
 echo "Start index: $START_INDEX" >> "$OUTPUT_BASE/sweep_log.txt"
 [ -n "$SWEEP_TEST_LIMIT" ] && echo "Test limit: $SWEEP_TEST_LIMIT" >> "$OUTPUT_BASE/sweep_log.txt"
+FAILED_RUNS=0
 
 END_INDEX=$((TOTAL - 1))
 if [ -n "$SWEEP_TEST_LIMIT" ]; then
@@ -530,6 +660,7 @@ for i in $(seq 0 "$END_INDEX"); do
         echo "$(date '+%Y-%m-%d %H:%M:%S') SUCCESS run=$((i+1)) policy=$policy trace=$trace_name SF=$scale_factor" >> "$OUTPUT_BASE/sweep_log.txt"
     else
         echo "$(date '+%Y-%m-%d %H:%M:%S') FAILED run=$((i+1)) policy=$policy trace=$trace_name SF=$scale_factor" >> "$OUTPUT_BASE/sweep_log.txt"
+        FAILED_RUNS=$((FAILED_RUNS + 1))
     fi
 
     # Brief pause between runs
@@ -540,4 +671,8 @@ done
 log "============================================================"
 log "Sweep complete! Results in: $OUTPUT_BASE"
 log "Sweep log: $OUTPUT_BASE/sweep_log.txt"
+if [ "$FAILED_RUNS" -gt 0 ]; then
+    log "Sweep failed: $FAILED_RUNS selected run(s) failed"
+    exit 1
+fi
 log "============================================================"

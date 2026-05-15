@@ -6,9 +6,9 @@ config = [
 ]
 
 [variables]
-model_path = "/home/admin/cpfs/zkx/Qwen--Qwen3-30B-A3B-Instruct-2507/"
-work_dir = "/home/admin/cpfs/zkx/code/blitz-router"
-work-dir = "/home/admin/cpfs/zkx/code/blitz-router"
+model_path = "${model-path}"
+work_dir = "${work-dir}"
+work-dir = "${work-dir}"
 output_dir = "${output-dir}"
 
 [app.router]
@@ -25,7 +25,6 @@ extra_args = ["--use-tokenizer"]
 "--max-input-length" = "context_length"
 "--max-total-tokens" = "total_tokens"
 "--max-concurrent-requests" = "concurrent_req"
-"--max-batch-prefill-tokens" = "mbpt"
 "--kvcache-block-size" = "block_size"
 
 [app.router.config]
@@ -38,5 +37,4 @@ log_path = "${output_dir}/router_v2.log"
 context_length = 59999
 total_tokens = 60000
 concurrent_req = 4096
-mbpt = 120000
 block_size = 16

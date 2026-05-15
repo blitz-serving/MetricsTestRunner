@@ -6,12 +6,13 @@ config = [
 ]
 
 [variables]
-model_path = "/home/admin/cpfs/zkx/Qwen--Qwen3-30B-A3B-Instruct-2507/"
-work_dir = "/home/admin/cpfs/zkx/code/blitz-router"
-work-dir = "/home/admin/cpfs/zkx/code/blitz-router"
-dataset_dir = "/home/admin/cpfs/zkx/qwen-bailian-usagetraces-anon"
-trace_name = "mooncake_toolagent_trace_poissoned.jsonl"
-client_executable = "/home/admin/cpfs/zkx/code/blitz-router/target/release/request-sim"
+model_path = "${model-path}"
+work_dir = "${work-dir}"
+work-dir = "${work-dir}"
+dataset_dir = "${dataset-dir}"
+trace_name = "${trace-name}"
+scale_factor = "${scale-factor}"
+client_executable = "${work-dir}/target/release/request-sim"
 output_dir = "${output-dir}"
 time_in_secs = "${time_in_secs}"
 
@@ -38,7 +39,7 @@ config.tokenizer_config = "${model_path}/tokenizer_config.json"
 config.endpoint = "http://localhost:58009/v1/chat/completions"
 config.api = "openai"
 config.model_name = "${model_path}"
-config.scale_factor = 1.8
+config.scale_factor = "${scale_factor}"
 config.dataset_type = "bailian"
 config.dataset_path = "${dataset_dir}/${trace_name}"
 config.time_in_secs = "${time_in_secs}"

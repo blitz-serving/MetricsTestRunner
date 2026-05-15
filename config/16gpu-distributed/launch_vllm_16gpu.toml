@@ -1,6 +1,6 @@
 # Backend: 16 vLLM instances (8 local + 8 remote via SSH)
 # Local: GPUs 0-7 on this machine
-# Remote: GPUs 0-7 on Peer (172.27.122.6)
+# Remote: GPUs 0-7 on the SSH peer configured in ae.env
 
 [runtime.raw]
 config = [
@@ -27,15 +27,17 @@ config = [
 ]
 
 [variables]
-model_path = "/home/admin/cpfs/zkx/Qwen--Qwen3-30B-A3B-Instruct-2507/"
-vllm_executable = "/home/admin/cpfs/zkx/code/yaullm/.venv/bin/vllm"
-work_dir = "/home/admin/cpfs/zkx/code/blitz-router"
+model_path = "${model-path}"
+remote_model_path = "${remote-model-path}"
+vllm_executable = "${vllm-executable}"
+remote_vllm_executable = "${remote-vllm-executable}"
+work_dir = "${work-dir}"
 base_vllm_port = 51000
 remote_base_vllm_port = 51000
-remote_ips = ["172.27.122.6"]
-remote_user = "root"
-remote_ssh_port = 10022
-work-dir = "/home/admin/cpfs/zkx/code/blitz-router"
+remote_ips = ["${remote-host}"]
+remote_user = "${remote-user}"
+remote_ssh_port = "${remote-ssh-port}"
+work-dir = "${work-dir}"
 output_dir = "${output-dir}"
 remote_output_dir = "${remote-output-dir}"
 
@@ -48,7 +50,8 @@ extra_args = [
     "--max-num-seqs", "256",
     "--block-size", "16",
     "--enable-prefix-caching",
-    "--gpu-memory-utilization", "0.85",
+    "--gpu-memory-utilization", "0.9",
+    "--max-num-batched-tokens", "4096",
     "--trust-remote-code",
     "--disable-log-requests",
     "> ${log_file} 2>&1"
@@ -56,4 +59,17 @@ extra_args = [
 
 
 [app.vllm_remote_template]
-inherit = "vllm_template"
+executable = ["${remote_vllm_executable}", "serve"]
+extra_args = [
+    "${remote_model_path}",
+    "--port", "${port}",
+    "--max-model-len", "60000",
+    "--max-num-seqs", "256",
+    "--block-size", "16",
+    "--enable-prefix-caching",
+    "--gpu-memory-utilization", "0.9",
+    "--max-num-batched-tokens", "4096",
+    "--trust-remote-code",
+    "--disable-log-requests",
+    "> ${log_file} 2>&1"
+]

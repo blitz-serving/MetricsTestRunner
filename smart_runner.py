@@ -71,8 +71,7 @@ def resolve_inheritance(app_name: str, app_config: dict, seen: tuple = None) -> 
 
 def set_global_variables(variables: dict, global_kv: dict):
     for key, value in variables.items():
-        if isinstance(value, str):
-            variables[key] = param_expand(value, global_kv)
+        variables[key] = resolve_variables(value, global_kv)
 
 
 def load_toml_config(path: str, global_kv: dict = {}):
