@@ -2,7 +2,7 @@
 # =============================================================================
 # Comprehensive 16-GPU Policy Sweep Script
 # =============================================================================
-# Runs all 7 policies × 3 traces × 5 scale factors = 105 test combinations.
+# Runs all 8 policies × 4 traces × varying scale factors = 152 test combinations.
 # Each run: start vLLM → router → client → wait → cleanup → repeat.
 #
 # Usage: bash sweep_test_robust.sh [start_index]
@@ -92,7 +92,7 @@ SMART_RUNNER_ARGS=(
 )
 
 # -----------------------------------------------------------------------------
-# Test Matrix: 7 policies × 4 traces × 5 scale factors = 133 runs
+# Test Matrix: 8 policies × 4 traces × varying scale factors = 152 runs
 # -----------------------------------------------------------------------------
 # Format: POLICY|TRACE_NAME|SCALE_FACTOR|TIME_IN_SEC
 TESTS=(
@@ -236,6 +236,31 @@ TESTS=(
     "join-shortest-q-weight|mooncake_toolagent_trace_poissoned.jsonl|1.4|${TIME_IN_SEC}"
     "join-shortest-q-weight|mooncake_toolagent_trace_poissoned.jsonl|1.6|${TIME_IN_SEC}"
     "join-shortest-q-weight|mooncake_toolagent_trace_poissoned.jsonl|1.8|${TIME_IN_SEC}"
+
+    # llm-d (least-ttft-q)
+    # TraceA
+    "least-ttft-q|qwen_traceA_blksz_16.jsonl|5.6|${TIME_IN_SEC}"
+    "least-ttft-q|qwen_traceA_blksz_16.jsonl|6.0|${TIME_IN_SEC}"
+    "least-ttft-q|qwen_traceA_blksz_16.jsonl|6.4|${TIME_IN_SEC}"
+    "least-ttft-q|qwen_traceA_blksz_16.jsonl|6.8|${TIME_IN_SEC}"
+    "least-ttft-q|qwen_traceA_blksz_16.jsonl|7.2|${TIME_IN_SEC}"
+    # TraceB
+    "least-ttft-q|qwen_traceB_blksz_16.jsonl|5.5|${TIME_IN_SEC}"
+    "least-ttft-q|qwen_traceB_blksz_16.jsonl|6.0|${TIME_IN_SEC}"
+    "least-ttft-q|qwen_traceB_blksz_16.jsonl|6.5|${TIME_IN_SEC}"
+    "least-ttft-q|qwen_traceB_blksz_16.jsonl|7.0|${TIME_IN_SEC}"
+    "least-ttft-q|qwen_traceB_blksz_16.jsonl|7.5|${TIME_IN_SEC}"
+    # Coder
+    "least-ttft-q|anony-qwen3-coder-20251118-14-16.jsonl|2.0|${TIME_IN_SEC}"
+    "least-ttft-q|anony-qwen3-coder-20251118-14-16.jsonl|2.2|${TIME_IN_SEC}"
+    "least-ttft-q|anony-qwen3-coder-20251118-14-16.jsonl|2.4|${TIME_IN_SEC}"
+    "least-ttft-q|anony-qwen3-coder-20251118-14-16.jsonl|2.6|${TIME_IN_SEC}"
+    "least-ttft-q|anony-qwen3-coder-20251118-14-16.jsonl|2.8|${TIME_IN_SEC}"
+    # Mooncake Tool
+    "least-ttft-q|mooncake_toolagent_trace_poissoned.jsonl|1.2|${TIME_IN_SEC}"
+    "least-ttft-q|mooncake_toolagent_trace_poissoned.jsonl|1.4|${TIME_IN_SEC}"
+    "least-ttft-q|mooncake_toolagent_trace_poissoned.jsonl|1.6|${TIME_IN_SEC}"
+    "least-ttft-q|mooncake_toolagent_trace_poissoned.jsonl|1.8|${TIME_IN_SEC}"
 )
 
 TOTAL=${#TESTS[@]}
@@ -622,7 +647,7 @@ run_single_test() {
 # -----------------------------------------------------------------------------
 log "============================================================"
 log "Starting comprehensive sweep: $TOTAL runs"
-log "Policies: lmetric-q, preble-q, dynamo-q, dynamo-decoupled-q, aibrix-q, bailian-impl-q, join-shortest-q-weight"
+log "Policies: lmetric-q, preble-q, dynamo-q, dynamo-decoupled-q, aibrix-q, bailian-impl-q, join-shortest-q-weight, least-ttft-q"
 log "Traces: TraceA, TraceB, Coder"
 log "Starting from index: $START_INDEX"
 [ -n "$SWEEP_TEST_LIMIT" ] && log "Test limit: $SWEEP_TEST_LIMIT run(s)"
